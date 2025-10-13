@@ -52,27 +52,6 @@ const Auth = () => {
         });
         navigate("/dashboard");
       } else {
-        // Check if email already exists in database
-        const { data: exists, error: checkError } = await supabase.rpc('check_user_exists', {
-          email_input: email
-        });
-
-        if (checkError) {
-          throw checkError;
-        }
-
-        if (exists) {
-          toast({
-            title: "Account Already Exists",
-            description: "An account with this email already exists. Please sign in instead, or check your email if you haven't verified your account yet.",
-            variant: "destructive",
-          });
-          // Switch to login mode
-          setIsLogin(true);
-          return;
-        }
-
-        // Email doesn't exist, proceed with signup
         // Proceed with signup
         const { data, error } = await supabase.auth.signUp({
           email,
