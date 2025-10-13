@@ -88,6 +88,25 @@ const Resumes = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <Card className="p-6 mb-8 bg-primary/5 border-primary/20">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-2">📚 New to Resume Writing?</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Learn how to create ATS-optimized resumes that get you interviews at top companies. 
+                Our comprehensive guide covers everything from beating applicant tracking systems to crafting compelling content.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/resume-guide")}
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                Read the Resume Guide
+              </Button>
+            </div>
+          </div>
+        </Card>
+
         {resumes.length === 0 ? (
           <Card className="p-8 text-center">
             <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
