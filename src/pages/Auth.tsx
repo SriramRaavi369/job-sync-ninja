@@ -32,18 +32,14 @@ const Auth = () => {
         });
 
         if (error) {
-          // Check if it's a user not found error
-          if (error.message.includes('Invalid login credentials') || error.message.includes('User not found')) {
-            toast({
-              title: "Account Not Found",
-              description: "No account found with this email. Please sign up to create a new account.",
-              variant: "destructive",
-            });
-            // Switch to signup mode
-            setIsLogin(false);
-            return;
-          }
-          throw error;
+          toast({
+            title: "Sign In Failed",
+            description: error.message === "Invalid login credentials" 
+              ? "Incorrect email or password. Please try again or sign up if you don't have an account."
+              : error.message,
+            variant: "destructive",
+          });
+          return;
         }
 
         toast({
@@ -65,14 +61,12 @@ const Auth = () => {
         });
 
         if (error) {
-          // Handle user already registered error
           if (error.message.includes("User already registered")) {
             toast({
               title: "Account Already Exists",
               description: "An account with this email already exists. Please sign in instead.",
               variant: "destructive",
             });
-            // Switch to login mode
             setIsLogin(true);
             return;
           }
@@ -80,13 +74,12 @@ const Auth = () => {
         }
 
         toast({
-          title: "Verification email sent!",
-          description: "Please check your email and click the verification link to complete registration.",
+          title: "Account Created!",
+          description: "You've been signed up successfully. Redirecting to dashboard...",
         });
 
-        // Show a message instead of OTP screen
-        setPendingEmail(email);
-        setShowOtpVerification(true);
+        // Since auto-confirm is enabled, user is automatically signed in
+        setTimeout(() => navigate("/dashboard"), 1500);
       }
     } catch (error: any) {
       toast({
@@ -171,19 +164,26 @@ const Auth = () => {
       });
 
       if (error) {
-        console.error('Google OAuth Error:', error);
         throw error;
       }
 
       // If successful, the user will be redirected
-      console.log('Google OAuth initiated:', data);
     } catch (error: any) {
-      console.error('Google Sign In Error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to sign in with Google",
-        variant: "destructive",
-      });
+      const errorMessage = error.message || "Failed to sign in with Google";
+      
+      if (errorMessage.includes("provider is not enabled")) {
+        toast({
+          title: "Google Sign-In Not Configured",
+          description: "Please configure Google OAuth in your backend settings to use this feature.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
       setLoading(false);
     }
   };
