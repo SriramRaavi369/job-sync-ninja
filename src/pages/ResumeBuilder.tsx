@@ -8,6 +8,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import ResumeUpload from "@/components/resume-builder/ResumeUpload";
 import TemplateSelection from "@/components/resume-builder/TemplateSelection";
 import ResumeEditor from "@/components/resume-builder/ResumeEditor";
+import ResumePreview from "@/components/resume-builder/ResumePreview"; // Import ResumePreview
 
 export interface ParsedResumeData {
   fullName: string;
@@ -50,6 +51,7 @@ const ResumeBuilder = () => {
   const [currentStep, setCurrentStep] = useState<"upload" | "template" | "editor">("upload");
   const [parsedData, setParsedData] = useState<ParsedResumeData | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [editedData, setEditedData] = useState<ParsedResumeData | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -70,12 +72,17 @@ const ResumeBuilder = () => {
 
   const handleResumeUploaded = (data: ParsedResumeData) => {
     setParsedData(data);
+    setEditedData(data);
     setCurrentStep("template");
   };
 
   const handleTemplateSelected = (templateId: string) => {
     setSelectedTemplate(templateId);
     setCurrentStep("editor");
+  };
+
+  const handleEditorChange = (data: ParsedResumeData) => {
+    setEditedData(data);
   };
 
   const handleBack = () => {
@@ -110,12 +117,20 @@ const ResumeBuilder = () => {
           />
         )}
         
-        {currentStep === "editor" && parsedData && selectedTemplate && (
-          <ResumeEditor
-            parsedData={parsedData}
-            templateId={selectedTemplate}
-            userId={user?.id || ""}
-          />
+        {currentStep === "editor" && parsedData && selectedTemplate && editedData && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="lg:col-span-1">
+              <ResumeEditor
+                parsedData={editedData}
+                templateId={selectedTemplate}
+                userId={user?.id || ""}
+                onDataChange={handleEditorChange}
+              />
+            </div>
+            <div className="lg:col-span-1 border rounded-lg p-4 bg-white shadow-sm overflow-auto h-[80vh]">
+              <ResumePreview resumeData={editedData} templateId={selectedTemplate} />
+            </div>
+          </div>
         )}
       </main>
     </div>

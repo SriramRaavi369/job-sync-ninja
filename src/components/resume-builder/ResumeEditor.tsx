@@ -24,6 +24,7 @@ interface ResumeEditorProps {
   parsedData: ParsedResumeData;
   templateId: string;
   userId: string;
+  onDataChange: (data: ParsedResumeData) => void; // New prop
 }
 
 interface ATSWarning {
@@ -31,7 +32,7 @@ interface ATSWarning {
   message: string;
 }
 
-const ResumeEditor = ({ parsedData, templateId, userId }: ResumeEditorProps) => {
+const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEditorProps) => {
   const [resumeData, setResumeData] = useState<ParsedResumeData>(parsedData);
   const [atsWarnings, setAtsWarnings] = useState<ATSWarning[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -41,8 +42,9 @@ const ResumeEditor = ({ parsedData, templateId, userId }: ResumeEditorProps) => 
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkATSCompliance(resumeData);
-  }, []);
+    setResumeData(parsedData);
+    checkATSCompliance(parsedData);
+  }, [parsedData]); // Re-run when parsedData changes
 
   // Check for ATS issues
   const checkATSCompliance = (data: ParsedResumeData) => {
@@ -93,6 +95,7 @@ const ResumeEditor = ({ parsedData, templateId, userId }: ResumeEditorProps) => 
   const updateField = (field: keyof ParsedResumeData, value: any) => {
     const newData = { ...resumeData, [field]: value };
     setResumeData(newData);
+    onDataChange(newData); // Call onDataChange
     checkATSCompliance(newData);
   };
 
@@ -500,7 +503,7 @@ const ResumeEditor = ({ parsedData, templateId, userId }: ResumeEditorProps) => 
                       onChange={(e) =>
                         updateExperience(idx, "description", e.target.value.split("\n"))
                       }
-                      placeholder="• Led team of 5 engineers&#10;• Increased performance by 40%"
+                      placeholder="• Led team of 5 engineers\n• Increased performance by 40%"
                       rows={4}
                     />
                   </div>

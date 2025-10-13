@@ -3,8 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, Sparkles, Shield, Eye } from "lucide-react";
+import { CheckCircle2, Sparkles, Shield } from "lucide-react";
 import type { ParsedResumeData } from "@/pages/ResumeBuilder";
+import ResumePreview from "@/components/resume-builder/ResumePreview"; // Import ResumePreview
 
 interface TemplateSelectionProps {
   parsedData: ParsedResumeData;
@@ -20,11 +21,77 @@ interface Template {
   recommended?: boolean;
   recommendedReason?: string;
   features: string[];
+  previewComponent: JSX.Element;
 }
+
+// Sample data for template previews
+const sampleResumeData: ParsedResumeData = {
+  fullName: "John Doe",
+  email: "john.doe@example.com",
+  phone: "(123) 456-7890",
+  location: "San Francisco, CA",
+  linkedin: "linkedin.com/in/johndoe",
+  summary:
+    "Highly motivated and results-oriented software engineer with 5+ years of experience in developing and deploying scalable web applications.",
+  experience: [
+    {
+      title: "Software Engineer",
+      company: "Tech Solutions Inc.",
+      location: "San Francisco, CA",
+      startDate: "Jan 2022",
+      endDate: "Present",
+      description: [
+        "Developed and maintained full-stack web applications using React, Node.js, and PostgreSQL.",
+        "Led a team of 3 engineers in the successful launch of a new product feature, increasing user engagement by 20%.",
+        "Implemented CI/CD pipelines, reducing deployment time by 50%.",
+      ],
+    },
+    {
+      title: "Junior Developer",
+      company: "Innovate Corp.",
+      location: "Seattle, WA",
+      startDate: "Jun 2020",
+      endDate: "Dec 2021",
+      description: [
+        "Contributed to the development of a mobile application using React Native.",
+        "Assisted in bug fixing and performance optimization.",
+      ],
+    },
+  ],
+  education: [
+    {
+      degree: "Master of Science in Computer Science",
+      institution: "University of California, Berkeley",
+      location: "Berkeley, CA",
+      graduationDate: "May 2022",
+      gpa: "3.9",
+    },
+    {
+      degree: "Bachelor of Science in Software Engineering",
+      institution: "University of Washington",
+      location: "Seattle, WA",
+      graduationDate: "May 2020",
+      gpa: "3.8",
+    },
+  ],
+  skills: [
+    "JavaScript",
+    "TypeScript",
+    "React",
+    "Node.js",
+    "PostgreSQL",
+    "AWS",
+    "Docker",
+    "Git",
+    "Agile Methodologies",
+  ],
+  projects: [],
+  certifications: [],
+};
 
 const templates: Template[] = [
   {
-    id: "modern-minimal",
+    id: "default-template", // Changed to default-template to match ResumePreview logic
     name: "Modern Minimal",
     description: "Clean, single-column layout perfect for tech professionals",
     preview: "A simple, elegant design with clear section headers",
@@ -36,8 +103,13 @@ const templates: Template[] = [
       "Standard fonts (Arial, Calibri)",
       "Clear section headers",
       "No images or graphics",
-      "Excellent ATS compatibility"
-    ]
+      "Excellent ATS compatibility",
+    ],
+    previewComponent: (
+      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+        <ResumePreview resumeData={sampleResumeData} templateId="default-template" />
+      </div>
+    ),
   },
   {
     id: "professional-classic",
@@ -52,8 +124,13 @@ const templates: Template[] = [
       "Experience-focused",
       "High readability",
       "No tables or columns",
-      "Proven ATS success rate"
-    ]
+      "Proven ATS success rate",
+    ],
+    previewComponent: (
+      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+        <ResumePreview resumeData={sampleResumeData} templateId="professional-classic" />
+      </div>
+    ),
   },
   {
     id: "technical-focused",
@@ -68,8 +145,13 @@ const templates: Template[] = [
       "Project-focused layout",
       "Technical certifications highlight",
       "Clean bullet points",
-      "ATS-friendly formatting"
-    ]
+      "ATS-friendly formatting",
+    ],
+    previewComponent: (
+      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+        <ResumePreview resumeData={sampleResumeData} templateId="technical-focused" />
+      </div>
+    ),
   },
   {
     id: "executive-summary",
@@ -82,8 +164,13 @@ const templates: Template[] = [
       "Achievement-focused",
       "Leadership emphasis",
       "Clean structure",
-      "ATS compliant"
-    ]
+      "ATS compliant",
+    ],
+    previewComponent: (
+      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+        <ResumePreview resumeData={sampleResumeData} templateId="executive-summary" />
+      </div>
+    ),
   },
   {
     id: "academic-research",
@@ -96,8 +183,13 @@ const templates: Template[] = [
       "Research highlights",
       "Academic credentials focus",
       "Simple formatting",
-      "ATS compatible"
-    ]
+      "ATS compatible",
+    ],
+    previewComponent: (
+      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+        <ResumePreview resumeData={sampleResumeData} templateId="academic-research" />
+      </div>
+    ),
   },
   {
     id: "creative-professional",
@@ -110,15 +202,20 @@ const templates: Template[] = [
       "Project showcase",
       "Skills visualization",
       "ATS-safe design",
-      "Professional appearance"
-    ]
-  }
+      "Professional appearance",
+    ],
+    previewComponent: (
+      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+        <ResumePreview resumeData={sampleResumeData} templateId="creative-professional" />
+      </div>
+    ),
+  },
 ];
 
 const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelectionProps) => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
 
-  const recommendedTemplates = templates.filter(t => t.recommended);
+  const recommendedTemplates = templates.filter((t) => t.recommended);
   const allTemplates = templates;
 
   const handleTemplateSelect = (templateId: string) => {
@@ -179,7 +276,10 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
                 onClick={() => handleTemplateSelect(template.id)}
               >
                 <div className="flex items-start justify-between mb-4">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
+                  <Badge
+                    variant="secondary"
+                    className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100"
+                  >
                     <Sparkles className="h-3 w-3 mr-1" />
                     Recommended
                   </Badge>
@@ -188,8 +288,8 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
                   )}
                 </div>
 
-                <div className="aspect-[8.5/11] bg-muted rounded mb-4 flex items-center justify-center">
-                  <Eye className="h-8 w-8 text-muted-foreground" />
+                <div className="aspect-[8.5/11] bg-muted rounded mb-4 flex items-center justify-center overflow-hidden">
+                  {template.previewComponent}
                 </div>
 
                 <h3 className="font-semibold text-lg mb-2">{template.name}</h3>
@@ -207,7 +307,10 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
 
                 <div className="space-y-1 mb-4">
                   {template.features.slice(0, 3).map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 text-xs text-muted-foreground"
+                    >
                       <CheckCircle2 className="h-3 w-3 text-green-600" />
                       {feature}
                     </div>
@@ -236,24 +339,36 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
               <div>
                 <h3 className="font-semibold text-lg mb-2">100% ATS-Optimized Templates</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Every template in our gallery is designed to pass Applicant Tracking Systems with the following guarantees:
+                  Every template in our gallery is designed to pass Applicant Tracking Systems with the
+                  following guarantees:
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span><strong>No Visual Clutter:</strong> Excludes images, graphs, colors, and tables that confuse ATS</span>
+                    <span>
+                      <strong>No Visual Clutter:</strong> Excludes images, graphs, colors, and tables that
+                      confuse ATS
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span><strong>Standard Structure:</strong> Single-column layouts with clearly labeled sections</span>
+                    <span>
+                      <strong>Standard Structure:</strong> Single-column layouts with clearly labeled
+                      sections
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span><strong>High Readability:</strong> Standard fonts with appropriate margins and whitespace</span>
+                    <span>
+                      <strong>High Readability:</strong> Standard fonts with appropriate margins and
+                      whitespace
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span><strong>Proven Compatibility:</strong> Pre-tested for text selection and system parsing</span>
+                    <span>
+                      <strong>Proven Compatibility:</strong> Pre-tested for text selection and system parsing
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -272,7 +387,10 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
                 onClick={() => handleTemplateSelect(template.id)}
               >
                 <div className="flex items-start justify-between mb-4">
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100">
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
+                  >
                     <Shield className="h-3 w-3 mr-1" />
                     ATS Optimized
                   </Badge>
@@ -281,8 +399,8 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
                   )}
                 </div>
 
-                <div className="aspect-[8.5/11] bg-muted rounded mb-4 flex items-center justify-center">
-                  <Eye className="h-8 w-8 text-muted-foreground" />
+                <div className="aspect-[8.5/11] bg-muted rounded mb-4 flex items-center justify-center overflow-hidden">
+                  {template.previewComponent}
                 </div>
 
                 <h3 className="font-semibold text-lg mb-2">{template.name}</h3>
@@ -292,7 +410,10 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
 
                 <div className="space-y-1 mb-4">
                   {template.features.slice(0, 3).map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 text-xs text-muted-foreground"
+                    >
                       <CheckCircle2 className="h-3 w-3 text-green-600" />
                       {feature}
                     </div>
@@ -320,11 +441,9 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
           <div className="container mx-auto flex items-center justify-between">
             <div>
               <p className="font-medium">
-                {templates.find(t => t.id === selectedTemplate)?.name} selected
+                {templates.find((t) => t.id === selectedTemplate)?.name} selected
               </p>
-              <p className="text-sm text-muted-foreground">
-                Ready to customize your resume
-              </p>
+              <p className="text-sm text-muted-foreground">Ready to customize your resume</p>
             </div>
             <Button size="lg" onClick={handleContinue}>
               Continue to Editor
