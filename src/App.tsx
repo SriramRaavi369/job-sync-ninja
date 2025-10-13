@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Resumes from "./pages/Resumes";
+import ResumeBuilder from "./pages/ResumeBuilder";
 import ResumeGuide from "./pages/ResumeGuide";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/resumes" element={<Resumes />} />
+          <Route path="/resumes/new" element={<ResumeBuilder />} />
           <Route path="/resume-guide" element={<ResumeGuide />} />
           <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
