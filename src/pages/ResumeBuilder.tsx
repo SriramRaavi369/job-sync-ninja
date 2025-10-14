@@ -119,7 +119,7 @@ const ResumeBuilder = () => {
         
         {currentStep === "editor" && parsedData && selectedTemplate && editedData && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 overflow-auto">
               <ResumeEditor
                 parsedData={editedData}
                 templateId={selectedTemplate}
@@ -127,8 +127,16 @@ const ResumeBuilder = () => {
                 onDataChange={handleEditorChange}
               />
             </div>
-            <div className="lg:col-span-1 border rounded-lg p-4 bg-white shadow-sm overflow-auto h-[80vh]">
-              <ResumePreview resumeData={editedData} templateId={selectedTemplate} />
+            <div className="lg:col-span-1">
+              <div className="sticky top-8 border rounded-lg p-6 bg-white shadow-lg overflow-auto max-h-[calc(100vh-4rem)]">
+                <div className="mb-4 flex items-center justify-between border-b pb-3">
+                  <h2 className="text-lg font-semibold">Resume Preview</h2>
+                  <span className="text-xs text-muted-foreground">Live Preview</span>
+                </div>
+                <div className="resume-preview-wrapper" style={{ transform: "scale(0.85)", transformOrigin: "top center" }}>
+                  <ResumePreview resumeData={editedData} templateId={selectedTemplate} />
+                </div>
+              </div>
             </div>
           </div>
         )}
