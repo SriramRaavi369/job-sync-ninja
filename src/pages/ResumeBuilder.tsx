@@ -184,19 +184,10 @@ const ResumeBuilder = () => {
           <div className="space-y-6">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold mb-2">Create Your Resume</h1>
-              <p className="text-muted-foreground">Upload your existing resume or start with a template</p>
+              <p className="text-muted-foreground">Upload your existing resume to get started</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              <div className="cursor-pointer" onClick={handleSkipUpload}>
-                <div className="border-2 border-dashed border-primary rounded-lg p-8 hover:bg-accent/50 transition-colors">
-                  <h3 className="text-xl font-semibold mb-2">Start with Template</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Begin with our professionally designed Blue Monogram template pre-filled with sample content</p>
-                  <Button className="w-full">Use Blue Monogram Template</Button>
-                </div>
-              </div>
-              <div>
-                <ResumeUpload onResumeUploaded={handleResumeUploaded} />
-              </div>
+            <div className="max-w-2xl mx-auto">
+              <ResumeUpload onResumeUploaded={handleResumeUploaded} />
             </div>
           </div>
         )}
