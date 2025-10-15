@@ -7,198 +7,1117 @@ interface ResumePreviewProps {
 }
 
 const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId }) => {
-  // --- TEMPLATE 1: Modern Minimal ---
-  const renderModernMinimalTemplate = (data: ParsedResumeData) => (
-    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px]">
-      <h1 className="text-3xl font-bold mb-1 text-center">{data.fullName}</h1>
-      <p className="text-center text-xs mb-4">
-        {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>
-      </p>
-      {Object.entries(data).map(([key, value]) => {
-        if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-        return (
-          <section key={key} className="mb-4">
-            <h2 className="text-sm font-semibold border-b-2 border-gray-300 pb-1 mb-2 uppercase">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-            {renderSection(key as keyof ParsedResumeData, value)}
-          </section>
-        );
-      })}
+  // --- TEMPLATE 1: Blue Monogram (Resume-Now Inspired) ---
+  const renderBlueMonogramTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Blue Accent */}
+      <div className="mb-8">
+        <div className="h-2 bg-gradient-to-r from-blue-600 to-blue-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">LinkedIn Profile</a></div>
+        </div>
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-blue-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-blue-500 font-bold">•</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-blue-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 
-  // --- TEMPLATE 2: Professional Classic ---
-  const renderProfessionalClassicTemplate = (data: ParsedResumeData) => (
-    <div className="font-serif text-gray-700 p-6 leading-snug text-[10px]">
-      <h1 className="text-3xl font-bold mb-0.5 text-center uppercase tracking-widest">{data.fullName}</h1>
-      <p className="text-center text-xs mb-4 border-b pb-2 border-gray-400">
-        {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">LinkedIn</a>
-      </p>
-      {Object.entries(data).map(([key, value]) => {
-        if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-        return (
-          <section key={key} className="mb-4">
-            <h2 className="text-xs font-bold border-b border-gray-300 pb-1 mb-2 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-            {renderSection(key as keyof ParsedResumeData, value, 'classic')}
-          </section>
-        );
-      })}
+  // --- TEMPLATE 2: Classic (Resume-Now Inspired) ---
+  const renderClassicTemplate = (data: ParsedResumeData) => (
+    <div className="font-serif text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header */}
+      <div className="text-center mb-8 border-b-2 border-gray-400 pb-6">
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">LinkedIn Profile</a></div>
+        </div>
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-lg font-bold uppercase mb-4 border-b-2 border-gray-500 pb-2 text-gray-800">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-bold uppercase mb-4 border-b-2 border-gray-500 pb-2 text-gray-800">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-lg text-gray-900">{exp.title}</h3>
+                <span className="text-sm font-semibold text-gray-700">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-gray-800">{exp.company}</h4>
+                <span className="text-sm italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 font-bold text-gray-800">•</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-bold uppercase mb-4 border-b-2 border-gray-500 pb-2 text-gray-800">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-lg text-gray-900">{edu.degree}</h3>
+                <span className="text-sm font-semibold text-gray-700">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-gray-800">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="font-medium text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-bold uppercase mb-4 border-b-2 border-gray-500 pb-2 text-gray-800">SKILLS</h2>
+          <div className="text-sm font-medium text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-bold uppercase mb-4 border-b-2 border-gray-500 pb-2 text-gray-800">PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-bold uppercase mb-4 border-b-2 border-gray-500 pb-2 text-gray-800">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
   
-  // --- TEMPLATE 3: Technical Focused ---
-    const renderTechnicalFocusedTemplate = (data: ParsedResumeData) => (
-    <div className="font-mono text-gray-800 p-6 leading-relaxed text-[10px]">
-        <h1 className="text-2xl font-bold mb-1 text-left">// {data.fullName}</h1>
-        <p className="text-left text-xs mb-4">
-        {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">LinkedIn</a>
-        </p>
-        {Object.entries(data).map(([key, value]) => {
-        if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-        return (
-            <section key={key} className="mb-4">
-            <h2 className="text-sm font-semibold pb-1 mb-2 text-green-700">// {key.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</h2>
-            {renderSection(key as keyof ParsedResumeData, value, 'technical')}
-            </section>
-        );
-        })}
-    </div>
-    );
-  // --- TEMPLATE 4: Executive Summary ---
-    const renderExecutiveSummaryTemplate = (data: ParsedResumeData) => (
-        <div className="font-sans text-gray-900 p-6 leading-normal text-[11px]">
-            <h1 className="text-4xl font-extrabold mb-1 text-center border-b-4 border-gray-800 pb-2">{data.fullName}</h1>
-            <p className="text-center text-xs mb-4 pt-2">
-            {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>
-            </p>
-            {Object.entries(data).map(([key, value]) => {
-            if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-            return (
-                <section key={key} className="mb-4">
-                <h2 className="text-sm font-bold pb-1 mb-2 uppercase tracking-wider text-gray-700">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-                {renderSection(key as keyof ParsedResumeData, value, 'executive')}
-                </section>
-            );
-            })}
+  // --- TEMPLATE 3: Intelligent (Resume-Now Inspired) ---
+  const renderIntelligentTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Style */}
+      <div className="mb-8">
+        <div className="h-1 bg-gradient-to-r from-green-500 to-blue-500 mb-4"></div>
+        <h1 className="text-3xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">LinkedIn Profile</a></div>
         </div>
-    );
-  // --- TEMPLATE 5: Academic & Research ---
-    const renderAcademicResearchTemplate = (data: ParsedResumeData) => (
-        <div className="font-serif text-gray-800 p-6 leading-relaxed text-[10.5px]">
-            <h1 className="text-3xl font-bold mb-1 text-left">{data.fullName}</h1>
-            <p className="text-left text-xs mb-4 border-b pb-2">
-            {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-800 hover:underline">LinkedIn</a>
-            </p>
-            {Object.entries(data).map(([key, value]) => {
-            if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-            return (
-                <section key={key} className="mb-4">
-                <h2 className="text-base font-semibold pb-1 mb-2">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-                {renderSection(key as keyof ParsedResumeData, value, 'academic')}
-                </section>
-            );
-            })}
-        </div>
-    );
-    // --- TEMPLATE 6: Creative Professional ---
-    const renderCreativeProfessionalTemplate = (data: ParsedResumeData) => (
-        <div className="font-sans text-gray-700 p-6 leading-relaxed text-[11px]">
-            <h1 className="text-3xl font-bold mb-1 text-center text-purple-800">{data.fullName}</h1>
-            <p className="text-center text-xs mb-4">
-            {data.email} • {data.phone} • {data.location} • <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">LinkedIn</a>
-            </p>
-            {Object.entries(data).map(([key, value]) => {
-            if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-            return (
-                <section key={key} className="mb-4">
-                <h2 className="text-sm font-semibold border-b-2 border-purple-200 pb-1 mb-2 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-                {renderSection(key as keyof ParsedResumeData, value)}
-                </section>
-            );
-            })}
-        </div>
-    );
-    // --- TEMPLATE 7: Skill-Focused ---
-    const renderSkillFocusedTemplate = (data: ParsedResumeData) => (
-        <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px]">
-            <h1 className="text-3xl font-bold mb-1 text-center">{data.fullName}</h1>
-            <p className="text-center text-sm mb-4">
-            {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>
-            </p>
-            {data.skills && (
-            <section className="mb-4">
-                <h2 className="text-xl font-semibold border-b-2 border-blue-500 pb-1 mb-2">SKILLS</h2>
-                <div className="flex flex-wrap gap-2 text-sm">
-                {data.skills.map((skill, index) => (
-                    <span key={index} className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs">{skill}</span>
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-green-600 border-b border-green-200 pb-2">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-green-600 border-b border-green-200 pb-2">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-green-600 border-b border-green-200 pb-2">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-green-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-green-500 font-bold">▶</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
                 ))}
-                </div>
-            </section>
-            )}
-            {Object.entries(data).map(([key, value]) => {
-            if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin', 'skills'].includes(key)) return null;
-            return (
-                <section key={key} className="mb-4">
-                <h2 className="text-sm font-semibold border-b-2 border-gray-300 pb-1 mb-2 uppercase">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-                {renderSection(key as keyof ParsedResumeData, value)}
-                </section>
-            );
-            })}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-green-600 border-b border-green-200 pb-2">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-green-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-green-600 border-b border-green-200 pb-2">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-green-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-green-600 border-b border-green-200 pb-2">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+  // --- TEMPLATE 4: Novel (Resume-Now Inspired) ---
+  const renderNovelTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Bold Colors */}
+      <div className="mb-8">
+        <div className="h-3 bg-gradient-to-r from-purple-600 to-pink-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-purple-600 font-medium">LinkedIn Profile</a></div>
         </div>
-    );
-    // --- TEMPLATE 8: Achievement-Driven ---
-    const renderAchievementDrivenTemplate = (data: ParsedResumeData) => (
-        <div className="font-sans text-gray-800 p-6 leading-normal text-[11px]">
-            <h1 className="text-3xl font-extrabold mb-1 text-center text-blue-800">{data.fullName}</h1>
-            <p className="text-center text-sm mb-4 border-b-2 border-blue-200 pb-2">
-            {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">LinkedIn</a>
-            </p>
-            {Object.entries(data).map(([key, value]) => {
-            if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-            return (
-                <section key={key} className="mb-4">
-                <h2 className="text-xl font-bold border-b-2 border-blue-500 pb-1 mb-2 uppercase">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-                {renderSection(key as keyof ParsedResumeData, value, 'achievement')}
-                </section>
-            );
-            })}
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-purple-600 border-l-4 border-purple-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-purple-600 border-l-4 border-purple-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-purple-600 border-l-4 border-purple-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-purple-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-purple-500 font-bold">●</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-purple-600 border-l-4 border-purple-600 pl-3">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-purple-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-purple-600 border-l-4 border-purple-600 pl-3">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-purple-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-purple-600 border-l-4 border-purple-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+  // --- TEMPLATE 5: Spotlight (Resume-Now Inspired) ---
+  const renderSpotlightTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Colorful Accent */}
+      <div className="mb-8">
+        <div className="h-2 bg-gradient-to-r from-orange-500 to-red-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-orange-600 font-medium">LinkedIn Profile</a></div>
         </div>
-    );
-    // --- TEMPLATE 9: Chronological ---
-    const renderChronologicalTemplate = (data: ParsedResumeData) => (
-        <div className="font-serif text-gray-800 p-6 leading-relaxed text-[11px]">
-            <h1 className="text-3xl font-bold mb-1 text-left border-b-2 pb-2">{data.fullName}</h1>
-            <p className="text-left text-xs my-2">
-            {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>
-            </p>
-            {Object.entries(data).map(([key, value]) => {
-            if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-            return (
-                <section key={key} className="mb-4">
-                <h2 className="text-sm font-semibold border-b border-gray-300 pb-1 mb-2 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-                {renderSection(key as keyof ParsedResumeData, value, 'chronological')}
-                </section>
-            );
-            })}
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-orange-600 border-l-4 border-orange-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-orange-600 border-l-4 border-orange-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-orange-600 border-l-4 border-orange-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-orange-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-orange-500 font-bold">★</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-orange-600 border-l-4 border-orange-600 pl-3">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-orange-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-orange-600 border-l-4 border-orange-600 pl-3">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-orange-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-orange-600 border-l-4 border-orange-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+  // --- TEMPLATE 6: Patterns (Resume-Now Inspired) ---
+  const renderPatternsTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Pattern */}
+      <div className="mb-8">
+        <div className="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-medium">LinkedIn Profile</a></div>
         </div>
-    );
-    // --- TEMPLATE 10: Simple Modern ---
-    const renderSimpleModernTemplate = (data: ParsedResumeData) => (
-        <div style={{ fontFamily: "'Roboto', sans-serif" }} className="text-gray-700 p-6 leading-relaxed text-[11px]">
-            <h1 className="text-4xl font-light mb-1 text-center tracking-wider">{data.fullName}</h1>
-            <p className="text-center text-xs mb-6 tracking-widest">
-            {data.email} | {data.phone} | {data.location} | <a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>
-            </p>
-            {Object.entries(data).map(([key, value]) => {
-            if (!value || (Array.isArray(value) && value.length === 0) || ['fullName', 'email', 'phone', 'location', 'linkedin'].includes(key)) return null;
-            return (
-                <section key={key} className="mb-5">
-                <h2 className="text-xs font-bold pb-1 mb-2 uppercase tracking-widest text-gray-500">{key.replace(/([A-Z])/g, ' $1').trim()}</h2>
-                {renderSection(key as keyof ParsedResumeData, value, 'simple-modern')}
-                </section>
-            );
-            })}
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-indigo-600 border-l-4 border-indigo-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-indigo-600 border-l-4 border-indigo-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-indigo-600 border-l-4 border-indigo-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-indigo-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-indigo-500 font-bold">◆</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-indigo-600 border-l-4 border-indigo-600 pl-3">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-indigo-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-indigo-600 border-l-4 border-indigo-600 pl-3">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-indigo-600 border-l-4 border-indigo-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+  // --- TEMPLATE 7: Polished (Resume-Now Inspired) ---
+  const renderPolishedTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Bold Header */}
+      <div className="mb-8">
+        <div className="h-3 bg-gradient-to-r from-teal-500 to-blue-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-teal-600 font-medium">LinkedIn Profile</a></div>
         </div>
-    );
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-teal-600 border-l-4 border-teal-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-teal-600 border-l-4 border-teal-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-teal-600 border-l-4 border-teal-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-teal-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-teal-500 font-bold">►</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-teal-600 border-l-4 border-teal-600 pl-3">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-teal-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-teal-600 border-l-4 border-teal-600 pl-3">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-teal-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-teal-600 border-l-4 border-teal-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+  // --- TEMPLATE 8: Quote Bubble (Resume-Now Inspired) ---
+  const renderQuoteBubbleTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Fun Design */}
+      <div className="mb-8">
+        <div className="h-2 bg-gradient-to-r from-cyan-500 to-blue-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-cyan-600 font-medium">LinkedIn Profile</a></div>
+        </div>
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-cyan-600 border-l-4 border-cyan-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-cyan-600 border-l-4 border-cyan-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-cyan-600 border-l-4 border-cyan-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-cyan-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-cyan-500 font-bold">"</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-cyan-600 border-l-4 border-cyan-600 pl-3">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-cyan-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-cyan-600 border-l-4 border-cyan-600 pl-3">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-cyan-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-cyan-600 border-l-4 border-cyan-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+  // --- TEMPLATE 9: Trendy (Resume-Now Inspired) ---
+  const renderTrendyTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Pop of Color */}
+      <div className="mb-8">
+        <div className="h-2 bg-gradient-to-r from-pink-500 to-purple-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-pink-600 font-medium">LinkedIn Profile</a></div>
+        </div>
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-pink-600 border-l-4 border-pink-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-pink-600 border-l-4 border-pink-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-pink-600 border-l-4 border-pink-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-pink-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-pink-500 font-bold">→</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-pink-600 border-l-4 border-pink-600 pl-3">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-pink-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-pink-600 border-l-4 border-pink-600 pl-3">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-pink-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-pink-600 border-l-4 border-pink-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+  // --- TEMPLATE 10: Unique (Resume-Now Inspired) ---
+  const renderUniqueTemplate = (data: ParsedResumeData) => (
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Simple and Polished Styling */}
+      <div className="mb-8">
+        <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-emerald-600 font-medium">LinkedIn Profile</a></div>
+        </div>
+      </div>
+
+      {/* Professional Summary */}
+      {data.summary && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-emerald-600 border-l-4 border-emerald-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
+        </section>
+      )}
+
+      {/* Skills */}
+      {data.skills && data.skills.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-emerald-600 border-l-4 border-emerald-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
+          </div>
+        </section>
+      )}
+
+      {/* Experience */}
+      {data.experience && data.experience.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-emerald-600 border-l-4 border-emerald-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
+          {data.experience.map((exp, index) => (
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
+              </div>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-emerald-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
+              </div>
+              <ul className="text-sm space-y-2">
+                {exp.description.map((desc, descIndex) => (
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-emerald-500 font-bold">✓</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Education */}
+      {data.education && data.education.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-emerald-600 border-l-4 border-emerald-600 pl-3">EDUCATION</h2>
+          {data.education.map((edu, index) => (
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-emerald-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-emerald-600 border-l-4 border-emerald-600 pl-3">KEY PROJECTS</h2>
+          {data.projects.map((project, index) => (
+            <div key={index} className="mb-4">
+              <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-emerald-600 font-medium">View Project</a></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-emerald-600 border-l-4 border-emerald-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
+            {data.certifications.map((cert, index) => (
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
     const renderSection = (key: keyof ParsedResumeData, value: any, theme = 'default') => {
         switch (key) {
         case 'summary':
@@ -268,21 +1187,21 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
         }
     };
   
-    const renderTemplate = () => {
-        switch (templateId) {
-        case 'modern-minimal': return renderModernMinimalTemplate(resumeData);
-        case 'professional-classic': return renderProfessionalClassicTemplate(resumeData);
-        case 'technical-focused': return renderTechnicalFocusedTemplate(resumeData);
-        case 'executive-summary': return renderExecutiveSummaryTemplate(resumeData);
-        case 'academic-research': return renderAcademicResearchTemplate(resumeData);
-        case 'creative-professional': return renderCreativeProfessionalTemplate(resumeData);
-        case 'skill-focused': return renderSkillFocusedTemplate(resumeData);
-        case 'achievement-driven': return renderAchievementDrivenTemplate(resumeData);
-        case 'chronological': return renderChronologicalTemplate(resumeData);
-        case 'simple-modern': return renderSimpleModernTemplate(resumeData);
-        default: return renderModernMinimalTemplate(resumeData);
-        }
-    };
+  const renderTemplate = () => {
+    switch (templateId) {
+      case 'blue-monogram': return renderBlueMonogramTemplate(resumeData);
+      case 'classic': return renderClassicTemplate(resumeData);
+      case 'intelligent': return renderIntelligentTemplate(resumeData);
+      case 'novel': return renderNovelTemplate(resumeData);
+      case 'spotlight': return renderSpotlightTemplate(resumeData);
+      case 'patterns': return renderPatternsTemplate(resumeData);
+      case 'polished': return renderPolishedTemplate(resumeData);
+      case 'quote-bubble': return renderQuoteBubbleTemplate(resumeData);
+      case 'trendy': return renderTrendyTemplate(resumeData);
+      case 'unique': return renderUniqueTemplate(resumeData);
+      default: return renderBlueMonogramTemplate(resumeData);
+    }
+  };
 
     return (
         <div className="resume-preview-container bg-white shadow-lg">
@@ -292,3 +1211,4 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
     };
 
 export default ResumePreview;
+

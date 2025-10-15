@@ -24,222 +24,623 @@ interface Template {
   previewComponent: JSX.Element;
 }
 
-const sampleResumeData: ParsedResumeData = {
-  fullName: "John Doe",
-  email: "john.doe@example.com",
-  phone: "(123) 456-7890",
-  location: "San Francisco, CA",
-  linkedin: "linkedin.com/in/johndoe",
-  summary:
-    "Highly motivated and results-oriented software engineer with 5+ years of experience in developing and deploying scalable web applications.",
-  experience: [
-    {
-      title: "Software Engineer",
-      company: "Tech Solutions Inc.",
-      location: "San Francisco, CA",
-      startDate: "Jan 2022",
-      endDate: "Present",
-      description: [
-        "Developed and maintained full-stack web applications using React, Node.js, and PostgreSQL.",
-        "Led a team of 3 engineers in the successful launch of a new product feature, increasing user engagement by 20%.",
-      ],
-    },
-  ],
-  education: [
-    {
-      degree: "Master of Science in Computer Science",
-      institution: "University of California, Berkeley",
-      location: "Berkeley, CA",
-      graduationDate: "May 2022",
-      gpa: "3.9",
-    },
-  ],
-  skills: [
-    "JavaScript",
-    "TypeScript",
-    "React",
-    "Node.js",
-    "PostgreSQL",
-    "AWS",
-  ],
-  projects: [],
-  certifications: [],
+// Different sample data for each template to showcase unique designs
+const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
+  const baseData = {
+    fullName: "Alexandra Chen",
+    email: "alexandra.chen@email.com",
+    phone: "(555) 123-4567",
+    location: "New York, NY",
+    linkedin: "linkedin.com/in/alexandrachen",
+  };
+
+  switch (templateId) {
+    case "blue-monogram":
+      return {
+        ...baseData,
+        fullName: "Michael Rodriguez",
+        summary: "Visionary executive with 15+ years driving digital transformation and revenue growth across Fortune 500 companies.",
+        experience: [
+          {
+            title: "Chief Technology Officer",
+            company: "Global Tech Corp",
+            location: "New York, NY",
+            startDate: "Jan 2020",
+            endDate: "Present",
+            description: [
+              "Led digital transformation initiatives resulting in $50M revenue increase",
+              "Managed team of 200+ engineers across 5 countries",
+              "Implemented AI-driven solutions improving operational efficiency by 40%",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "MBA in Technology Management",
+            institution: "Stanford University",
+            location: "Stanford, CA",
+            graduationDate: "May 2010",
+            gpa: "3.8",
+          },
+        ],
+        skills: ["Strategic Planning", "Team Leadership", "Digital Transformation", "Revenue Growth", "AI Implementation"],
+        projects: [
+          {
+            name: "Enterprise AI Platform",
+            description: "Led development of company-wide AI platform serving 50,000+ employees",
+            technologies: ["Machine Learning", "Cloud Architecture", "Python", "TensorFlow"],
+            link: "https://github.com/mrodriguez/ai-platform"
+          }
+        ],
+        certifications: [
+          {
+            name: "Certified Executive Leadership Program",
+            issuer: "Harvard Business School",
+            date: "2023"
+          }
+        ],
+      };
+
+    case "classic":
+      return {
+        ...baseData,
+        fullName: "Sarah Kim",
+        summary: "Full-stack developer specializing in React, Python, and cloud architecture with expertise in microservices.",
+        experience: [
+          {
+            title: "Senior Software Engineer",
+            company: "TechStart Inc.",
+            location: "San Francisco, CA",
+            startDate: "Mar 2021",
+            endDate: "Present",
+            description: [
+              "Built scalable microservices architecture serving 1M+ users",
+              "Implemented CI/CD pipelines reducing deployment time by 60%",
+              "Mentored 5 junior developers and conducted code reviews",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Bachelor of Science in Computer Science",
+            institution: "MIT",
+            location: "Cambridge, MA",
+            graduationDate: "May 2019",
+            gpa: "3.7",
+          },
+        ],
+        skills: ["React", "Python", "AWS", "Docker", "Kubernetes", "PostgreSQL", "Redis"],
+        projects: [
+          {
+            name: "Microservices E-commerce Platform",
+            description: "Built scalable e-commerce platform handling 1M+ transactions daily",
+            technologies: ["React", "Node.js", "PostgreSQL", "Redis", "Docker"],
+            link: "https://github.com/sarahkim/ecommerce-platform"
+          },
+          {
+            name: "Real-time Analytics Dashboard",
+            description: "Developed dashboard for monitoring system performance and user behavior",
+            technologies: ["React", "D3.js", "WebSocket", "Python"],
+            link: "https://github.com/sarahkim/analytics-dashboard"
+          }
+        ],
+        certifications: [
+          {
+            name: "AWS Certified Solutions Architect",
+            issuer: "Amazon Web Services",
+            date: "2023"
+          },
+          {
+            name: "Certified Kubernetes Administrator",
+            issuer: "Cloud Native Computing Foundation",
+            date: "2022"
+          }
+        ],
+      };
+
+    case "intelligent":
+      return {
+        ...baseData,
+        fullName: "Emma Thompson",
+        summary: "Creative director with expertise in brand strategy, digital marketing, and user experience design.",
+        experience: [
+          {
+            title: "Creative Director",
+            company: "Design Studio Co.",
+            location: "Los Angeles, CA",
+            startDate: "Jun 2020",
+            endDate: "Present",
+            description: [
+              "Led creative campaigns increasing brand awareness by 150%",
+              "Designed user interfaces for mobile apps with 500K+ downloads",
+              "Managed creative team of 12 designers and copywriters",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Master of Fine Arts in Design",
+            institution: "Art Center College of Design",
+            location: "Pasadena, CA",
+            graduationDate: "May 2018",
+            gpa: "3.9",
+          },
+        ],
+        skills: ["Brand Strategy", "UI/UX Design", "Adobe Creative Suite", "Figma", "Digital Marketing"],
+        projects: [],
+        certifications: [],
+      };
+
+    case "novel":
+      return {
+        ...baseData,
+        fullName: "Dr. James Wilson",
+        summary: "Research scientist specializing in machine learning and artificial intelligence with 20+ published papers.",
+        experience: [
+          {
+            title: "Research Scientist",
+            company: "MIT Computer Science Lab",
+            location: "Cambridge, MA",
+            startDate: "Sep 2018",
+            endDate: "Present",
+            description: [
+              "Published 15 peer-reviewed papers in top-tier AI conferences",
+              "Led research team developing novel neural network architectures",
+              "Secured $2M in research funding from NSF and DARPA",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "PhD in Computer Science",
+            institution: "Stanford University",
+            location: "Stanford, CA",
+            graduationDate: "May 2018",
+            gpa: "3.9",
+          },
+        ],
+        skills: ["Machine Learning", "Deep Learning", "Python", "TensorFlow", "PyTorch", "Research"],
+        projects: [
+          {
+            name: "Neural Architecture Search for Computer Vision",
+            description: "Published research on automated neural network design achieving state-of-the-art results on ImageNet",
+            technologies: ["Python", "PyTorch", "Computer Vision", "Neural Architecture Search"],
+            link: "https://arxiv.org/abs/2023.nas-cv"
+          },
+          {
+            name: "Federated Learning Framework",
+            description: "Developed privacy-preserving machine learning framework for distributed training",
+            technologies: ["Python", "TensorFlow", "Federated Learning", "Privacy"],
+            link: "https://github.com/jwilson/federated-learning"
+          }
+        ],
+        certifications: [
+          {
+            name: "Google Research Scholar",
+            issuer: "Google Research",
+            date: "2023"
+          }
+        ],
+      };
+
+    case "spotlight":
+      return {
+        ...baseData,
+        fullName: "David Park",
+        summary: "Career changer transitioning from finance to software development with strong analytical and problem-solving skills.",
+        experience: [
+          {
+            title: "Financial Analyst",
+            company: "Investment Bank LLC",
+            location: "Chicago, IL",
+            startDate: "Jan 2019",
+            endDate: "Dec 2023",
+            description: [
+              "Analyzed financial data using Python and SQL",
+              "Developed automated reporting tools saving 20 hours/week",
+              "Led cross-functional teams on complex financial modeling projects",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Bachelor of Science in Finance",
+            institution: "University of Chicago",
+            location: "Chicago, IL",
+            graduationDate: "May 2018",
+            gpa: "3.6",
+          },
+        ],
+        skills: ["Python", "SQL", "JavaScript", "React", "Financial Analysis", "Data Visualization"],
+        projects: [],
+        certifications: [],
+      };
+
+    case "patterns":
+      return {
+        ...baseData,
+        fullName: "Lisa Martinez",
+        summary: "Sales executive with proven track record of exceeding targets and driving revenue growth in competitive markets.",
+        experience: [
+          {
+            title: "Regional Sales Manager",
+            company: "Enterprise Solutions Inc.",
+            location: "Austin, TX",
+            startDate: "Jan 2021",
+            endDate: "Present",
+            description: [
+              "Exceeded annual sales targets by 35% for 3 consecutive years",
+              "Generated $5M in new revenue through strategic client acquisition",
+              "Led sales team of 8 representatives across 4 states",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Bachelor of Business Administration",
+            institution: "University of Texas",
+            location: "Austin, TX",
+            graduationDate: "May 2017",
+            gpa: "3.8",
+          },
+        ],
+        skills: ["Sales Management", "Client Relations", "Revenue Growth", "Team Leadership", "CRM Systems"],
+        projects: [],
+        certifications: [],
+      };
+
+    case "polished":
+      return {
+        ...baseData,
+        fullName: "Jordan Lee",
+        summary: "Strategic product manager with expertise in user-centered design and data-driven decision making.",
+        experience: [
+          {
+            title: "Senior Product Manager",
+            company: "Innovation Labs",
+            location: "Seattle, WA",
+            startDate: "Jan 2022",
+            endDate: "Present",
+            description: [
+              "Led product strategy for mobile app reaching 2M+ active users",
+              "Collaborated with design and engineering teams to deliver features on schedule",
+              "Analyzed user data to inform product roadmap and feature prioritization",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Master of Business Administration",
+            institution: "University of Washington",
+            location: "Seattle, WA",
+            graduationDate: "May 2021",
+            gpa: "3.7",
+          },
+        ],
+        skills: ["Product Strategy", "User Research", "Data Analysis", "Agile Development"],
+        projects: [],
+        certifications: [],
+      };
+
+    case "quote-bubble":
+      return {
+        ...baseData,
+        fullName: "Robert Johnson",
+        summary: "Experienced financial analyst with strong background in investment banking and portfolio management.",
+        experience: [
+          {
+            title: "Senior Financial Analyst",
+            company: "Goldman Sachs",
+            location: "New York, NY",
+            startDate: "Jun 2019",
+            endDate: "Present",
+            description: [
+              "Analyzed investment opportunities worth over $500M in total value",
+              "Prepared detailed financial models and risk assessments for client portfolios",
+              "Collaborated with senior management on strategic investment decisions",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Bachelor of Science in Finance",
+            institution: "Wharton School, University of Pennsylvania",
+            location: "Philadelphia, PA",
+            graduationDate: "May 2019",
+            gpa: "3.8",
+          },
+        ],
+        skills: ["Financial Modeling", "Investment Analysis", "Risk Management", "Portfolio Optimization"],
+        projects: [],
+        certifications: [],
+      };
+
+    case "trendy":
+      return {
+        ...baseData,
+        fullName: "Sophie Chen",
+        summary: "UX designer focused on creating intuitive digital experiences through user research and iterative design.",
+        experience: [
+          {
+            title: "Senior UX Designer",
+            company: "Design Studio Co.",
+            location: "San Francisco, CA",
+            startDate: "Mar 2021",
+            endDate: "Present",
+            description: [
+              "Designed user interfaces for mobile apps with 1M+ downloads",
+              "Conducted user research studies improving conversion rates by 40%",
+              "Led design system implementation across 5 product teams",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Master of Design in Human-Computer Interaction",
+            institution: "Carnegie Mellon University",
+            location: "Pittsburgh, PA",
+            graduationDate: "May 2020",
+            gpa: "3.9",
+          },
+        ],
+        skills: ["User Research", "Prototyping", "Design Systems", "Figma"],
+        projects: [],
+        certifications: [],
+      };
+
+    case "unique":
+      return {
+        ...baseData,
+        fullName: "William Thompson",
+        summary: "Corporate attorney specializing in mergers and acquisitions with extensive experience in complex transactions.",
+        experience: [
+          {
+            title: "Senior Associate Attorney",
+            company: "Cravath, Swaine & Moore LLP",
+            location: "New York, NY",
+            startDate: "Sep 2018",
+            endDate: "Present",
+            description: [
+              "Led legal due diligence for M&A transactions exceeding $2B in value",
+              "Drafted and negotiated complex acquisition agreements and financing documents",
+              "Advised clients on corporate governance and regulatory compliance matters",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Juris Doctor",
+            institution: "Harvard Law School",
+            location: "Cambridge, MA",
+            graduationDate: "May 2018",
+            gpa: "3.7",
+          },
+        ],
+        skills: ["Mergers & Acquisitions", "Corporate Law", "Contract Negotiation", "Regulatory Compliance"],
+        projects: [],
+        certifications: [],
+      };
+
+    default:
+      return {
+        ...baseData,
+        summary: "Experienced professional with strong background in technology and business operations.",
+        experience: [
+          {
+            title: "Project Manager",
+            company: "Tech Solutions Inc.",
+            location: "Seattle, WA",
+            startDate: "Jan 2022",
+            endDate: "Present",
+            description: [
+              "Managed cross-functional teams delivering projects on time and under budget",
+              "Implemented agile methodologies improving team productivity by 25%",
+              "Coordinated with stakeholders across multiple departments",
+            ],
+          },
+        ],
+        education: [
+          {
+            degree: "Master of Business Administration",
+            institution: "University of Washington",
+            location: "Seattle, WA",
+            graduationDate: "May 2021",
+            gpa: "3.7",
+          },
+        ],
+        skills: ["Project Management", "Agile Methodologies", "Team Leadership", "Stakeholder Management"],
+        projects: [],
+        certifications: [],
+      };
+  }
 };
 
 const templates: Template[] = [
   {
-    id: "modern-minimal",
-    name: "Modern Minimal",
-    description: "Clean, sans-serif font with simple bottom borders. Ideal for tech professionals.",
-    preview: "A simple, elegant design with clear section headers",
+    id: "blue-monogram",
+    name: "Blue Monogram",
+    description: "Modern template with a splash of blue color to highlight section headers, making it easy for recruiters to navigate. Features clean typography and professional styling.",
+    preview: "Modern layout with blue accent colors",
     atsOptimized: true,
     recommended: true,
-    recommendedReason: "Clean, scannable format is great for technical roles.",
+    recommendedReason: "Perfect balance of professionalism and visual appeal with blue accent colors.",
     features: [
-      "Single-column layout",
-      "Standard sans-serif font",
-      "Clear section headers",
+      "Blue gradient header accent",
+      "Clean, modern typography",
+      "Professional section headers",
+      "ATS-optimized layout",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="modern-minimal" />
+        <ResumePreview resumeData={getSampleDataForTemplate("blue-monogram")} templateId="blue-monogram" />
       </div>
     ),
   },
   {
-    id: "professional-classic",
-    name: "Professional Classic",
-    description: "Serif font with uppercase headers for a traditional, corporate feel.",
-    preview: "A timeless design with traditional formatting",
+    id: "classic",
+    name: "Classic",
+    description: "Timeless design that focuses on your accomplishments with a simple yet appealing layout. Features serif typography and traditional styling perfect for conservative industries.",
+    preview: "Traditional classic layout with serif typography",
     atsOptimized: true,
     recommended: true,
-    recommendedReason: "Trusted format for corporate and academic roles.",
+    recommendedReason: "Perfect for traditional industries with clean, professional serif typography.",
     features: [
-      "Traditional serif font",
-      "Clear, uppercase headers",
-      "High readability",
+      "Serif typography styling",
+      "Traditional professional layout",
+      "Clean section borders",
+      "Conservative industry friendly",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="professional-classic" />
+        <ResumePreview resumeData={getSampleDataForTemplate("classic")} templateId="classic" />
       </div>
     ),
   },
   {
-    id: "technical-focused",
-    name: "Technical Focused",
-    description: "Monospace font for headers and a prominent skills section. Perfect for developers.",
-    preview: "Technical layout emphasizing skills and projects",
+    id: "intelligent",
+    name: "Intelligent",
+    description: "Provides a dash of style to draw employers to your qualifications. Features green accent colors and clean typography with professional styling elements.",
+    preview: "Intelligent layout with green accent colors",
     atsOptimized: true,
     recommended: true,
-    recommendedReason: "Highlights technical skills and experience.",
+    recommendedReason: "Balances style with professionalism, perfect for modern job applications.",
     features: [
-      "Monospace font for headers",
-      "Prominent skills section",
-      "Clean, readable layout",
+      "Green accent color scheme",
+      "Clean, intelligent styling",
+      "Professional typography",
+      "Modern visual elements",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="technical-focused" />
+        <ResumePreview resumeData={getSampleDataForTemplate("intelligent")} templateId="intelligent" />
       </div>
     ),
   },
   {
-    id: "executive-summary",
-    name: "Executive Summary",
-    description: "A strong, bold name and prominent summary section. For senior and leadership roles.",
-    preview: "Professional layout for executive-level resumes",
+    id: "novel",
+    name: "Novel",
+    description: "Features bold colors to make your skills and experience stand out. Purple gradient header with distinctive styling perfect for creative and modern professionals.",
+    preview: "Bold colorful layout with purple accents",
     atsOptimized: true,
     features: [
-      "Bold, prominent name",
-      "Emphasis on summary section",
-      "Strong, professional look",
+      "Purple gradient header",
+      "Bold color accents",
+      "Distinctive styling",
+      "Creative professional appeal",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="executive-summary" />
+        <ResumePreview resumeData={getSampleDataForTemplate("novel")} templateId="novel" />
       </div>
     ),
   },
   {
-    id: "academic-research",
-    name: "Academic & Research",
-    description: "A formal, serif font with clear sections for publications and research.",
-    preview: "Academic-focused layout with publications section",
+    id: "spotlight",
+    name: "Spotlight",
+    description: "A colorful template ideal for applicants in creative industries. Features orange gradient header and star bullet points to highlight achievements.",
+    preview: "Colorful creative layout with orange accents",
     atsOptimized: true,
+    recommended: true,
+    recommendedReason: "Perfect for creative industries with vibrant colors and unique styling.",
     features: [
-      "Formal serif font",
-      "Clear, distinct sections",
-      "Ideal for academic applications",
+      "Orange gradient header",
+      "Star bullet points",
+      "Creative industry focused",
+      "Vibrant color scheme",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="academic-research" />
+        <ResumePreview resumeData={getSampleDataForTemplate("spotlight")} templateId="spotlight" />
       </div>
     ),
   },
   {
-    id: "creative-professional",
-    name: "Creative Professional",
-    description: "Stylish sans-serif font with subtle color accents on the headers.",
-    preview: "Professional yet creative layout",
+    id: "patterns",
+    name: "Patterns",
+    description: "Uses a mix of patterns and colors to leave a memorable impression. Features indigo gradient header with diamond bullet points for unique visual appeal.",
+    preview: "Patterned layout with indigo accents",
     atsOptimized: true,
     features: [
-      "Stylish, modern font",
-      "Subtle color accents",
-      "Visually appealing layout",
+      "Indigo gradient header",
+      "Diamond bullet points",
+      "Memorable visual patterns",
+      "Unique styling elements",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="creative-professional" />
+        <ResumePreview resumeData={getSampleDataForTemplate("patterns")} templateId="patterns" />
       </div>
     ),
   },
   {
-    id: "skill-focused",
-    name: "Skill-Focused",
-    description: "Skills section at the top with tags. For career changers or skill-heavy roles.",
-    preview: "A template that emphasizes your core competencies and technical abilities.",
+    id: "polished",
+    name: "Polished",
+    description: "Combines a bold header with subtle color to mix artistry with professionalism. Features teal gradient header and arrow bullet points for a polished look.",
+    preview: "Polished layout with teal accents",
     atsOptimized: true,
     features: [
-      "Skills section at the top",
-      "Visually highlighted skills",
-      "Great for technical roles",
+      "Teal gradient header",
+      "Arrow bullet points",
+      "Artistry meets professionalism",
+      "Polished visual design",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="skill-focused" />
+        <ResumePreview resumeData={getSampleDataForTemplate("polished")} templateId="polished" />
       </div>
     ),
   },
   {
-    id: "achievement-driven",
-    name: "Achievement-Driven",
-    description: "A results-oriented design that emphasizes quantifiable accomplishments.",
-    preview: "A results-oriented template designed to showcase your impact.",
+    id: "quote-bubble",
+    name: "Quote Bubble",
+    description: "Showcases your credentials and personality with a fun design. Features cyan gradient header and quote bubble bullet points for a unique, memorable look.",
+    preview: "Fun layout with quote bubble styling",
     atsOptimized: true,
     features: [
-      "Focus on achievements",
-      "Quantifiable results",
-      "Strong for senior roles",
+      "Cyan gradient header",
+      "Quote bubble bullets",
+      "Fun, memorable design",
+      "Personality showcase",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="achievement-driven" />
+        <ResumePreview resumeData={getSampleDataForTemplate("quote-bubble")} templateId="quote-bubble" />
       </div>
     ),
   },
   {
-    id: "chronological",
-    name: "Chronological",
-    description: "A traditional, easy-to-scan format with clear date alignment.",
-    preview: "A traditional template showcasing career progression.",
+    id: "trendy",
+    name: "Trendy",
+    description: "Features a pop of color and crisp fonts for a unique CV. Pink gradient header with arrow bullet points perfect for modern, trendy professionals.",
+    preview: "Trendy layout with pink accents",
     atsOptimized: true,
     features: [
-      "Easy-to-scan format",
-      "Clear date alignment",
-      "Traditional and professional",
+      "Pink gradient header",
+      "Arrow bullet points",
+      "Crisp, modern fonts",
+      "Trendy professional appeal",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="chronological" />
+        <ResumePreview resumeData={getSampleDataForTemplate("trendy")} templateId="trendy" />
       </div>
     ),
   },
   {
-    id: "simple-modern",
-    name: "Simple Modern",
-    description: "Minimalist design with ample white space and light font weights.",
-    preview: "A minimalist template with a modern aesthetic.",
+    id: "unique",
+    name: "Unique",
+    description: "Presents your achievements with simple and polished styling. Features emerald gradient header and checkmark bullet points for a clean, unique look.",
+    preview: "Unique layout with emerald accents",
     atsOptimized: true,
     features: [
-      "Minimalist design",
-      "Ample white space",
-      "Clean and contemporary",
+      "Emerald gradient header",
+      "Checkmark bullet points",
+      "Simple, polished styling",
+      "Unique visual appeal",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={sampleResumeData} templateId="simple-modern" />
+        <ResumePreview resumeData={getSampleDataForTemplate("unique")} templateId="unique" />
       </div>
     ),
   },
