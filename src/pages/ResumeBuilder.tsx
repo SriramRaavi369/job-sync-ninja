@@ -46,12 +46,80 @@ export interface ParsedResumeData {
   }>;
 }
 
+// Default sample data for Blue Monogram template
+const defaultResumeData: ParsedResumeData = {
+  fullName: "Michael Rodriguez",
+  email: "michael.rodriguez@email.com",
+  phone: "(555) 123-4567",
+  location: "New York, NY",
+  linkedin: "linkedin.com/in/michaelrodriguez",
+  summary: "Visionary executive with 15+ years driving digital transformation and revenue growth across Fortune 500 companies. Expert in leading high-performing teams and implementing innovative technology solutions.",
+  experience: [
+    {
+      title: "Chief Technology Officer",
+      company: "Global Tech Corp",
+      location: "New York, NY",
+      startDate: "Jan 2020",
+      endDate: "Present",
+      description: [
+        "Led digital transformation initiatives resulting in $50M revenue increase",
+        "Managed team of 200+ engineers across 5 countries",
+        "Implemented AI-driven solutions improving operational efficiency by 40%",
+      ],
+    },
+    {
+      title: "Vice President of Engineering",
+      company: "Innovation Labs Inc.",
+      location: "San Francisco, CA",
+      startDate: "Mar 2015",
+      endDate: "Dec 2019",
+      description: [
+        "Built and scaled engineering organization from 20 to 150+ team members",
+        "Launched 5 major product releases generating $30M in annual revenue",
+        "Established engineering best practices and development standards",
+      ],
+    },
+  ],
+  education: [
+    {
+      degree: "MBA in Technology Management",
+      institution: "Stanford University",
+      location: "Stanford, CA",
+      graduationDate: "May 2010",
+      gpa: "3.8",
+    },
+    {
+      degree: "Bachelor of Science in Computer Science",
+      institution: "MIT",
+      location: "Cambridge, MA",
+      graduationDate: "May 2005",
+      gpa: "3.9",
+    },
+  ],
+  skills: ["Strategic Planning", "Team Leadership", "Digital Transformation", "Revenue Growth", "AI Implementation", "Cloud Architecture", "Agile Methodologies"],
+  projects: [
+    {
+      name: "Enterprise AI Platform",
+      description: "Led development of company-wide AI platform serving 50,000+ employees with advanced machine learning capabilities",
+      technologies: ["Machine Learning", "Cloud Architecture", "Python", "TensorFlow"],
+      link: "https://github.com/mrodriguez/ai-platform"
+    }
+  ],
+  certifications: [
+    {
+      name: "Certified Executive Leadership Program",
+      issuer: "Harvard Business School",
+      date: "2023"
+    }
+  ],
+};
+
 const ResumeBuilder = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [currentStep, setCurrentStep] = useState<"upload" | "template" | "editor">("upload");
   const [parsedData, setParsedData] = useState<ParsedResumeData | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
-  const [editedData, setEditedData] = useState<ParsedResumeData | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("blue-monogram");
+  const [editedData, setEditedData] = useState<ParsedResumeData | null>(defaultResumeData);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -74,6 +142,12 @@ const ResumeBuilder = () => {
     setParsedData(data);
     setEditedData(data);
     setCurrentStep("template");
+  };
+
+  const handleSkipUpload = () => {
+    setParsedData(defaultResumeData);
+    setEditedData(defaultResumeData);
+    setCurrentStep("editor");
   };
 
   const handleTemplateSelected = (templateId: string) => {
@@ -107,7 +181,24 @@ const ResumeBuilder = () => {
 
       <main className="container mx-auto px-4 py-8">
         {currentStep === "upload" && (
-          <ResumeUpload onResumeUploaded={handleResumeUploaded} />
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-2">Create Your Resume</h1>
+              <p className="text-muted-foreground">Upload your existing resume or start with a template</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              <div className="cursor-pointer" onClick={handleSkipUpload}>
+                <div className="border-2 border-dashed border-primary rounded-lg p-8 hover:bg-accent/50 transition-colors">
+                  <h3 className="text-xl font-semibold mb-2">Start with Template</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Begin with our professionally designed Blue Monogram template pre-filled with sample content</p>
+                  <Button className="w-full">Use Blue Monogram Template</Button>
+                </div>
+              </div>
+              <div>
+                <ResumeUpload onResumeUploaded={handleResumeUploaded} />
+              </div>
+            </div>
+          </div>
         )}
         
         {currentStep === "template" && parsedData && (
