@@ -181,7 +181,15 @@ const ResumeBuilder = () => {
 
       <main className="container mx-auto px-4 py-8">
         {currentStep === "upload" && (
-          <ResumeUpload onResumeUploaded={handleResumeUploaded} />
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-2">Create Your Resume</h1>
+              <p className="text-muted-foreground">Upload your existing resume or start with a template</p>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              <ResumeUpload onResumeUploaded={handleResumeUploaded} />
+            </div>
+          </div>
         )}
         
         {currentStep === "template" && parsedData && (
