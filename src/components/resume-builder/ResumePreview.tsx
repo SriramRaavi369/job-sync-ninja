@@ -7,82 +7,59 @@ interface ResumePreviewProps {
 }
 
 const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId }) => {
-  // --- TEMPLATE 1: Blue Monogram (Modern ATS-Optimized) ---
+  // --- TEMPLATE 1: Blue Monogram (Resume-Now Inspired) ---
   const renderBlueMonogramTemplate = (data: ParsedResumeData) => (
-    <div className="font-sans text-gray-900 p-8 leading-normal bg-white" style={{ fontSize: '10.5pt', lineHeight: '1.5' }}>
-      {/* Header Section - Clean and Professional */}
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold mb-3 tracking-tight" style={{ color: '#1e40af' }}>{data.fullName}</h1>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700">
-          <span className="flex items-center gap-1">
-            <span className="font-medium">Email:</span> {data.email}
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="font-medium">Phone:</span> {data.phone}
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="font-medium">Location:</span> {data.location}
-          </span>
-          {data.linkedin && (
-            <span className="flex items-center gap-1">
-              <span className="font-medium">LinkedIn:</span> 
-              <a href={data.linkedin} className="text-blue-600 underline hover:text-blue-800">{data.linkedin.replace('https://', '')}</a>
-            </span>
-          )}
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+      {/* Header with Blue Accent */}
+      <div className="mb-8">
+        <div className="h-2 bg-gradient-to-r from-blue-600 to-blue-500 mb-4"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600">
+          <div>{data.email}</div>
+          <div>{data.phone}</div>
+          <div>{data.location}</div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">LinkedIn Profile</a></div>
         </div>
-      </header>
+      </div>
 
       {/* Professional Summary */}
       {data.summary && (
-        <section className="mb-6">
-          <h2 className="text-base font-bold uppercase mb-3 pb-1 border-b-2" style={{ color: '#1e40af', borderColor: '#1e40af' }}>
-            Professional Summary
-          </h2>
-          <p className="text-sm leading-relaxed text-gray-800">{data.summary}</p>
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">PROFESSIONAL SUMMARY</h2>
+          <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
         </section>
       )}
 
-      {/* Core Skills */}
+      {/* Skills */}
       {data.skills && data.skills.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-base font-bold uppercase mb-3 pb-1 border-b-2" style={{ color: '#1e40af', borderColor: '#1e40af' }}>
-            Core Skills
-          </h2>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            {data.skills.map((skill, index) => (
-              <div key={index} className="flex items-start text-sm">
-                <span className="mr-2 mt-1" style={{ color: '#1e40af' }}>▪</span>
-                <span className="text-gray-800">{skill}</span>
-              </div>
-            ))}
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">CORE SKILLS</h2>
+          <div className="text-sm text-gray-700">
+            {data.skills.join(' • ')}
           </div>
         </section>
       )}
 
-      {/* Professional Experience */}
+      {/* Experience */}
       {data.experience && data.experience.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-base font-bold uppercase mb-3 pb-1 border-b-2" style={{ color: '#1e40af', borderColor: '#1e40af' }}>
-            Professional Experience
-          </h2>
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
           {data.experience.map((exp, index) => (
-            <div key={index} className="mb-5">
-              <div className="flex justify-between items-baseline mb-1">
-                <h3 className="font-bold text-base text-gray-900">{exp.title}</h3>
-                <span className="text-sm text-gray-600 font-medium whitespace-nowrap ml-4">{exp.startDate} - {exp.endDate}</span>
+            <div key={index} className="mb-6">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
               </div>
-              <div className="flex justify-between items-baseline mb-2">
-                <h4 className="font-semibold text-sm" style={{ color: '#1e40af' }}>{exp.company}</h4>
-                <span className="text-sm text-gray-600 italic ml-4">{exp.location}</span>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-sm text-blue-600">{exp.company}</h4>
+                <span className="text-xs italic text-gray-600">{exp.location}</span>
               </div>
-              <ul className="space-y-1.5 ml-1">
+              <ul className="text-sm space-y-2">
                 {exp.description.map((desc, descIndex) => (
-                  desc.trim() && (
-                    <li key={descIndex} className="flex items-start text-sm text-gray-800">
-                      <span className="mr-2 mt-1.5 flex-shrink-0" style={{ color: '#1e40af' }}>•</span>
-                      <span className="leading-relaxed">{desc}</span>
-                    </li>
-                  )
+                  desc.trim() && <li key={descIndex} className="flex items-start">
+                    <span className="mr-3 text-blue-500 font-bold">•</span>
+                    <span className="text-gray-700">{desc}</span>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -92,20 +69,18 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
 
       {/* Education */}
       {data.education && data.education.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-base font-bold uppercase mb-3 pb-1 border-b-2" style={{ color: '#1e40af', borderColor: '#1e40af' }}>
-            Education
-          </h2>
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">EDUCATION</h2>
           {data.education.map((edu, index) => (
-            <div key={index} className="mb-3">
-              <div className="flex justify-between items-baseline">
-                <h3 className="font-bold text-base text-gray-900">{edu.degree}</h3>
-                <span className="text-sm text-gray-600 font-medium ml-4">{edu.graduationDate}</span>
+            <div key={index} className="mb-4">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
+                <span className="text-xs text-gray-600">{edu.graduationDate}</span>
               </div>
-              <div className="text-sm mt-1">
-                <div className="font-semibold" style={{ color: '#1e40af' }}>{edu.institution}</div>
-                <div className="text-gray-600">{edu.location}</div>
-                {edu.gpa && <div className="text-gray-800 mt-0.5">GPA: {edu.gpa}</div>}
+              <div className="text-sm">
+                <div className="font-semibold text-blue-600">{edu.institution}</div>
+                <div className="italic text-gray-600">{edu.location}</div>
+                {edu.gpa && <div className="text-gray-700">GPA: {edu.gpa}</div>}
               </div>
             </div>
           ))}
@@ -114,24 +89,14 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
 
       {/* Projects */}
       {data.projects && data.projects.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-base font-bold uppercase mb-3 pb-1 border-b-2" style={{ color: '#1e40af', borderColor: '#1e40af' }}>
-            Key Projects
-          </h2>
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">KEY PROJECTS</h2>
           {data.projects.map((project, index) => (
-            <div key={index} className="mb-3">
+            <div key={index} className="mb-4">
               <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
-              <p className="text-sm mb-1 text-gray-800 leading-relaxed">{project.description}</p>
-              <div className="text-sm text-gray-700">
-                <span className="font-medium">Technologies:</span> {project.technologies.join(', ')}
-              </div>
-              {project.link && (
-                <div className="text-sm mt-1">
-                  <a href={project.link} className="text-blue-600 underline hover:text-blue-800">
-                    {project.link}
-                  </a>
-                </div>
-              )}
+              <p className="text-sm mb-2 text-gray-700">{project.description}</p>
+              <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">View Project</a></div>}
             </div>
           ))}
         </section>
@@ -139,18 +104,13 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
 
       {/* Certifications */}
       {data.certifications && data.certifications.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-base font-bold uppercase mb-3 pb-1 border-b-2" style={{ color: '#1e40af', borderColor: '#1e40af' }}>
-            Certifications
-          </h2>
-          <ul className="space-y-2">
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">CERTIFICATIONS</h2>
+          <ul className="text-sm space-y-2">
             {data.certifications.map((cert, index) => (
-              <li key={index} className="text-sm">
-                <div className="flex justify-between items-baseline">
-                  <span className="font-semibold text-gray-900">{cert.name}</span>
-                  <span className="text-gray-600 ml-4">{cert.date}</span>
-                </div>
-                <div className="text-gray-700">{cert.issuer}</div>
+              <li key={index} className="flex justify-between font-medium">
+                <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
+                <span className="text-gray-700">{cert.date}</span>
               </li>
             ))}
           </ul>
