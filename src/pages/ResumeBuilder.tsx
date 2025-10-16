@@ -324,8 +324,8 @@ const ResumeBuilder = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [currentStep, setCurrentStep] = useState<"upload" | "template" | "editor">("upload");
   const [parsedData, setParsedData] = useState<ParsedResumeData | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("blue-monogram");
-  const [editedData, setEditedData] = useState<ParsedResumeData | null>(getSampleDataForTemplate("blue-monogram"));
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("executive");
+  const [editedData, setEditedData] = useState<ParsedResumeData | null>(getSampleDataForTemplate("executive"));
   const [isStartingFromScratch, setIsStartingFromScratch] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -364,7 +364,7 @@ const ResumeBuilder = () => {
   }, [navigate]);
 
   const handleStartFromScratch = () => {
-    const sampleData = getSampleDataForTemplate("blue-monogram");
+    const sampleData = getSampleDataForTemplate("executive");
     setParsedData(sampleData);
     setEditedData(sampleData);
     setIsStartingFromScratch(true);

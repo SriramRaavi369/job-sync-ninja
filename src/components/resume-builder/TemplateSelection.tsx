@@ -35,7 +35,7 @@ const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
   };
 
   switch (templateId) {
-    case "blue-monogram":
+    case "executive":
       return {
         ...baseData,
         fullName: "Michael Rodriguez",
@@ -81,7 +81,7 @@ const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
         ],
       };
 
-    case "classic":
+    case "software-engineer":
       return {
         ...baseData,
         fullName: "Sarah Kim",
@@ -138,7 +138,7 @@ const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
         ],
       };
 
-    case "intelligent":
+    case "marketing":
       return {
         ...baseData,
         fullName: "Emma Thompson",
@@ -457,190 +457,190 @@ const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
 
 const templates: Template[] = [
   {
-    id: "blue-monogram",
-    name: "Blue Monogram",
-    description: "Modern template with a splash of blue color to highlight section headers, making it easy for recruiters to navigate. Features clean typography and professional styling.",
-    preview: "Modern layout with blue accent colors",
+    id: "executive",
+    name: "Executive Leadership",
+    description: "Professional serif template designed for C-suite executives and senior leadership roles. Features centered header with elegant borders and traditional typography.",
+    preview: "Elegant executive template with centered layout",
     atsOptimized: true,
     recommended: true,
-    recommendedReason: "Perfect balance of professionalism and visual appeal with blue accent colors.",
+    recommendedReason: "Perfect for executive positions with a sophisticated, traditional design that commands authority.",
     features: [
-      "Blue gradient header accent",
-      "Clean, modern typography",
-      "Professional section headers",
-      "ATS-optimized layout",
-    ],
-    previewComponent: (
-      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("blue-monogram")} templateId="blue-monogram" />
-      </div>
-    ),
-  },
-  {
-    id: "classic",
-    name: "Classic",
-    description: "Timeless design that focuses on your accomplishments with a simple yet appealing layout. Features serif typography and traditional styling perfect for conservative industries.",
-    preview: "Traditional classic layout with serif typography",
-    atsOptimized: true,
-    recommended: true,
-    recommendedReason: "Perfect for traditional industries with clean, professional serif typography.",
-    features: [
-      "Serif typography styling",
-      "Traditional professional layout",
+      "Traditional serif typography",
+      "Centered executive header",
       "Clean section borders",
-      "Conservative industry friendly",
+      "Professional leadership focus",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("classic")} templateId="classic" />
+        <ResumePreview resumeData={getSampleDataForTemplate("executive")} templateId="executive" />
       </div>
     ),
   },
   {
-    id: "intelligent",
-    name: "Intelligent",
-    description: "Provides a dash of style to draw employers to your qualifications. Features green accent colors and clean typography with professional styling elements.",
-    preview: "Intelligent layout with green accent colors",
+    id: "software-engineer",
+    name: "Software Engineer",
+    description: "Modern template optimized for tech professionals. Emphasizes technical skills and projects with a clean blue accent and sans-serif typography.",
+    preview: "Tech-focused layout with blue accent border",
     atsOptimized: true,
     recommended: true,
-    recommendedReason: "Balances style with professionalism, perfect for modern job applications.",
+    recommendedReason: "Ideal for software developers and engineers, highlighting technical skills prominently.",
     features: [
-      "Green accent color scheme",
-      "Clean, intelligent styling",
-      "Professional typography",
-      "Modern visual elements",
+      "Blue accent border",
+      "Technical skills emphasis",
+      "Projects section included",
+      "Clean modern typography",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("intelligent")} templateId="intelligent" />
+        <ResumePreview resumeData={getSampleDataForTemplate("software-engineer")} templateId="software-engineer" />
       </div>
     ),
   },
   {
-    id: "novel",
-    name: "Novel",
-    description: "Features bold colors to make your skills and experience stand out. Purple gradient header with distinctive styling perfect for creative and modern professionals.",
-    preview: "Bold colorful layout with purple accents",
-    atsOptimized: true,
-    features: [
-      "Purple gradient header",
-      "Bold color accents",
-      "Distinctive styling",
-      "Creative professional appeal",
-    ],
-    previewComponent: (
-      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("novel")} templateId="novel" />
-      </div>
-    ),
-  },
-  {
-    id: "spotlight",
-    name: "Spotlight",
-    description: "A colorful template ideal for applicants in creative industries. Features orange gradient header and star bullet points to highlight achievements.",
-    preview: "Colorful creative layout with orange accents",
+    id: "business",
+    name: "Business Professional",
+    description: "Versatile template suitable for business, consulting, and corporate roles. Features clean lines and professional formatting that works across industries.",
+    preview: "Clean business layout with subtle borders",
     atsOptimized: true,
     recommended: true,
-    recommendedReason: "Perfect for creative industries with vibrant colors and unique styling.",
+    recommendedReason: "Versatile design that works for any business or corporate position.",
     features: [
-      "Orange gradient header",
-      "Star bullet points",
-      "Creative industry focused",
-      "Vibrant color scheme",
+      "Professional formatting",
+      "Works across industries",
+      "Clean section organization",
+      "Business-focused layout",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("spotlight")} templateId="spotlight" />
+        <ResumePreview resumeData={getSampleDataForTemplate("business")} templateId="business" />
       </div>
     ),
   },
   {
-    id: "patterns",
-    name: "Patterns",
-    description: "Uses a mix of patterns and colors to leave a memorable impression. Features indigo gradient header with diamond bullet points for unique visual appeal.",
-    preview: "Patterned layout with indigo accents",
+    id: "finance",
+    name: "Finance & Legal",
+    description: "Conservative template perfect for finance, banking, accounting, and legal professions. Features centered header with serif typography for a traditional, trustworthy appearance.",
+    preview: "Conservative finance layout with centered design",
     atsOptimized: true,
     features: [
-      "Indigo gradient header",
-      "Diamond bullet points",
-      "Memorable visual patterns",
-      "Unique styling elements",
+      "Traditional serif font",
+      "Conservative styling",
+      "Certifications emphasis",
+      "Finance industry standard",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("patterns")} templateId="patterns" />
+        <ResumePreview resumeData={getSampleDataForTemplate("finance")} templateId="finance" />
       </div>
     ),
   },
   {
-    id: "polished",
-    name: "Polished",
-    description: "Combines a bold header with subtle color to mix artistry with professionalism. Features teal gradient header and arrow bullet points for a polished look.",
-    preview: "Polished layout with teal accents",
+    id: "marketing",
+    name: "Marketing & Sales",
+    description: "Modern template with creative flair for marketing, sales, and business development roles. Features purple accent border to stand out while remaining professional.",
+    preview: "Marketing-focused with purple accent",
     atsOptimized: true,
     features: [
-      "Teal gradient header",
-      "Arrow bullet points",
-      "Artistry meets professionalism",
-      "Polished visual design",
+      "Purple accent border",
+      "Creative yet professional",
+      "Achievement emphasis",
+      "Modern typography",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("polished")} templateId="polished" />
+        <ResumePreview resumeData={getSampleDataForTemplate("marketing")} templateId="marketing" />
       </div>
     ),
   },
   {
-    id: "quote-bubble",
-    name: "Quote Bubble",
-    description: "Showcases your credentials and personality with a fun design. Features cyan gradient header and quote bubble bullet points for a unique, memorable look.",
-    preview: "Fun layout with quote bubble styling",
+    id: "recent-grad",
+    name: "Recent Graduate",
+    description: "Optimized for entry-level candidates and recent graduates. Places education first and emphasizes projects, internships, and relevant coursework.",
+    preview: "Education-first layout for new graduates",
     atsOptimized: true,
+    recommended: true,
+    recommendedReason: "Designed specifically for recent graduates, highlighting education and academic projects.",
     features: [
-      "Cyan gradient header",
-      "Quote bubble bullets",
-      "Fun, memorable design",
-      "Personality showcase",
+      "Education section first",
+      "Projects emphasis",
+      "Entry-level optimized",
+      "Clean, approachable design",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("quote-bubble")} templateId="quote-bubble" />
+        <ResumePreview resumeData={getSampleDataForTemplate("recent-grad")} templateId="recent-grad" />
       </div>
     ),
   },
   {
-    id: "trendy",
-    name: "Trendy",
-    description: "Features a pop of color and crisp fonts for a unique CV. Pink gradient header with arrow bullet points perfect for modern, trendy professionals.",
-    preview: "Trendy layout with pink accents",
+    id: "career-changer",
+    name: "Career Changer",
+    description: "Designed for professionals transitioning to new industries. Features skills-first approach with green accent to represent growth and new beginnings.",
+    preview: "Skills-focused layout with green accent",
     atsOptimized: true,
     features: [
-      "Pink gradient header",
-      "Arrow bullet points",
-      "Crisp, modern fonts",
-      "Trendy professional appeal",
+      "Skills-first approach",
+      "Green accent border",
+      "Transferable skills focus",
+      "Career transition optimized",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("trendy")} templateId="trendy" />
+        <ResumePreview resumeData={getSampleDataForTemplate("career-changer")} templateId="career-changer" />
       </div>
     ),
   },
   {
-    id: "unique",
-    name: "Unique",
-    description: "Presents your achievements with simple and polished styling. Features emerald gradient header and checkmark bullet points for a clean, unique look.",
-    preview: "Unique layout with emerald accents",
+    id: "project-manager",
+    name: "Project Manager",
+    description: "Structured template for project managers, product managers, and team leaders. Features orange accent and emphasizes certifications and leadership competencies.",
+    preview: "PM-focused with orange accent",
     atsOptimized: true,
     features: [
-      "Emerald gradient header",
-      "Checkmark bullet points",
-      "Simple, polished styling",
-      "Unique visual appeal",
+      "Orange accent border",
+      "Certifications prominent",
+      "Leadership emphasis",
+      "Structured organization",
     ],
     previewComponent: (
       <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
-        <ResumePreview resumeData={getSampleDataForTemplate("unique")} templateId="unique" />
+        <ResumePreview resumeData={getSampleDataForTemplate("project-manager")} templateId="project-manager" />
+      </div>
+    ),
+  },
+  {
+    id: "creative",
+    name: "Creative Professional",
+    description: "Minimalist template with subtle design elements for designers, artists, and creative professionals. Features clean lines and a decorative accent bar.",
+    preview: "Minimalist creative layout",
+    atsOptimized: true,
+    features: [
+      "Minimalist design",
+      "Decorative accent bar",
+      "Creative industry friendly",
+      "Clean, modern aesthetic",
+    ],
+    previewComponent: (
+      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+        <ResumePreview resumeData={getSampleDataForTemplate("creative")} templateId="creative" />
+      </div>
+    ),
+  },
+  {
+    id: "healthcare",
+    name: "Healthcare Professional",
+    description: "Professional template for healthcare, medical, and clinical roles. Features centered header and prominent certifications section with traditional serif typography.",
+    preview: "Healthcare-focused with centered header",
+    atsOptimized: true,
+    features: [
+      "Centered professional header",
+      "Licenses & certifications first",
+      "Clinical focus",
+      "Traditional healthcare styling",
+    ],
+    previewComponent: (
+      <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+        <ResumePreview resumeData={getSampleDataForTemplate("healthcare")} templateId="healthcare" />
       </div>
     ),
   },
