@@ -663,8 +663,8 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="text-center mb-8">
+    <div className="max-w-7xl mx-auto animate-in fade-in-0 duration-1000">
+      <div className="text-center mb-8 animate-in slide-in-from-bottom-4 duration-1000 delay-200">
         <h1 className="text-3xl font-bold mb-2">Choose Your Template</h1>
         <p className="text-muted-foreground">
           Select from our gallery of 10 ATS-optimized resume templates.
@@ -672,12 +672,12 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
       </div>
 
       <Tabs defaultValue="gallery" className="w-full">
-        <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
-          <TabsTrigger value="recommended" className="gap-2">
+        <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 animate-in zoom-in-50 duration-1000 delay-400">
+          <TabsTrigger value="recommended" className="gap-2 hover:scale-105 transition-transform duration-200">
             <Sparkles className="h-4 w-4" />
             AI Recommended
           </TabsTrigger>
-          <TabsTrigger value="gallery" className="gap-2">
+          <TabsTrigger value="gallery" className="gap-2 hover:scale-105 transition-transform duration-200">
             <Shield className="h-4 w-4" />
             ATS Gallery
           </TabsTrigger>
@@ -697,14 +697,15 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
           </Card>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {recommendedTemplates.map((template) => (
+            {recommendedTemplates.map((template, index) => (
               <Card
                 key={template.id}
-                className={`p-6 cursor-pointer transition-all hover:shadow-lg ${
+                className={`p-6 cursor-pointer transition-all hover:shadow-lg hover:scale-105 hover:-translate-y-1 ${
                   selectedTemplate === template.id
-                    ? "ring-2 ring-primary shadow-lg"
+                    ? "ring-2 ring-primary shadow-lg scale-105 -translate-y-1"
                     : "hover:border-primary/50"
-                }`}
+                } animate-in fade-in-0 slide-in-from-bottom-4 duration-1000`}
+                style={{ animationDelay: `${600 + index * 100}ms` }}
                 onClick={() => handleTemplateSelect(template.id)}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -795,14 +796,15 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
           </Card>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {allTemplates.map((template) => (
+            {allTemplates.map((template, index) => (
               <Card
                 key={template.id}
-                className={`p-6 cursor-pointer transition-all hover:shadow-lg ${
+                className={`p-6 cursor-pointer transition-all hover:shadow-lg hover:scale-105 hover:-translate-y-1 ${
                   selectedTemplate === template.id
-                    ? "ring-2 ring-primary shadow-lg"
+                    ? "ring-2 ring-primary shadow-lg scale-105 -translate-y-1"
                     : "hover:border-primary/50"
-                }`}
+                } animate-in fade-in-0 slide-in-from-bottom-4 duration-1000`}
+                style={{ animationDelay: `${600 + index * 50}ms` }}
                 onClick={() => handleTemplateSelect(template.id)}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -856,15 +858,15 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
       </Tabs>
 
       {selectedTemplate && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 shadow-lg animate-in slide-in-from-bottom-4 duration-500">
           <div className="container mx-auto flex items-center justify-between">
-            <div>
+            <div className="animate-in fade-in-0 duration-500 delay-200">
               <p className="font-medium">
                 {templates.find((t) => t.id === selectedTemplate)?.name} selected
               </p>
               <p className="text-sm text-muted-foreground">Ready to customize your resume</p>
             </div>
-            <Button size="lg" onClick={handleContinue}>
+            <Button size="lg" onClick={handleContinue} className="hover:scale-105 transition-transform duration-200 animate-in fade-in-0 duration-500 delay-400">
               Continue to Editor
             </Button>
           </div>

@@ -9,22 +9,22 @@ interface ResumePreviewProps {
 const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId }) => {
   // --- TEMPLATE 1: Blue Monogram (Resume-Now Inspired) ---
   const renderBlueMonogramTemplate = (data: ParsedResumeData) => (
-    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white">
+    <div className="font-sans text-gray-800 p-6 leading-relaxed text-[11px] bg-white animate-in fade-in-0 duration-1000">
       {/* Header with Blue Accent */}
-      <div className="mb-8">
-        <div className="h-2 bg-gradient-to-r from-blue-600 to-blue-500 mb-4"></div>
-        <h1 className="text-4xl font-bold mb-3 text-gray-900">{data.fullName}</h1>
-        <div className="text-sm space-y-1 text-gray-600">
+      <div className="mb-8 animate-in slide-in-from-top-4 duration-1000 delay-200">
+        <div className="h-2 bg-gradient-to-r from-blue-600 to-blue-500 mb-4 animate-in zoom-in-50 duration-1000 delay-300"></div>
+        <h1 className="text-4xl font-bold mb-3 text-gray-900 animate-in fade-in-0 duration-1000 delay-400">{data.fullName}</h1>
+        <div className="text-sm space-y-1 text-gray-600 animate-in fade-in-0 duration-1000 delay-500">
           <div>{data.email}</div>
           <div>{data.phone}</div>
           <div>{data.location}</div>
-          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">LinkedIn Profile</a></div>
+          <div><a href={data.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline transition-all duration-200">LinkedIn Profile</a></div>
         </div>
       </div>
 
       {/* Professional Summary */}
       {data.summary && (
-        <section className="mb-8">
+        <section className="mb-8 animate-in slide-in-from-left-4 duration-1000 delay-600">
           <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">PROFESSIONAL SUMMARY</h2>
           <p className="text-sm leading-relaxed text-gray-700">{data.summary}</p>
         </section>
@@ -32,7 +32,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
 
       {/* Skills */}
       {data.skills && data.skills.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-8 animate-in slide-in-from-right-4 duration-1000 delay-700">
           <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">CORE SKILLS</h2>
           <div className="text-sm text-gray-700">
             {data.skills.join(' • ')}
@@ -42,10 +42,10 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
 
       {/* Experience */}
       {data.experience && data.experience.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-8 animate-in slide-in-from-left-4 duration-1000 delay-800">
           <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">PROFESSIONAL EXPERIENCE</h2>
           {data.experience.map((exp, index) => (
-            <div key={index} className="mb-6">
+            <div key={index} className="mb-6 animate-in fade-in-0 duration-800" style={{ animationDelay: `${900 + index * 100}ms` }}>
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
                 <span className="text-xs text-gray-600">{exp.startDate} - {exp.endDate}</span>
@@ -56,7 +56,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
               </div>
               <ul className="text-sm space-y-2">
                 {exp.description.map((desc, descIndex) => (
-                  desc.trim() && <li key={descIndex} className="flex items-start">
+                  desc.trim() && <li key={descIndex} className="flex items-start animate-in slide-in-from-left-2 duration-500" style={{ animationDelay: `${1000 + index * 50 + descIndex * 50}ms` }}>
                     <span className="mr-3 text-blue-500 font-bold">•</span>
                     <span className="text-gray-700">{desc}</span>
                   </li>
@@ -69,10 +69,10 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
 
       {/* Education */}
       {data.education && data.education.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-8 animate-in slide-in-from-right-4 duration-1000 delay-1000">
           <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">EDUCATION</h2>
           {data.education.map((edu, index) => (
-            <div key={index} className="mb-4">
+            <div key={index} className="mb-4 animate-in fade-in-0 duration-800" style={{ animationDelay: `${1100 + index * 100}ms` }}>
               <div className="flex justify-between items-start">
                 <h3 className="font-bold text-sm text-gray-900">{edu.degree}</h3>
                 <span className="text-xs text-gray-600">{edu.graduationDate}</span>
@@ -89,14 +89,14 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
 
       {/* Projects */}
       {data.projects && data.projects.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-8 animate-in slide-in-from-left-4 duration-1000 delay-1100">
           <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">KEY PROJECTS</h2>
           {data.projects.map((project, index) => (
-            <div key={index} className="mb-4">
+            <div key={index} className="mb-4 animate-in fade-in-0 duration-800" style={{ animationDelay: `${1200 + index * 100}ms` }}>
               <h3 className="font-bold text-sm text-gray-900">{project.name}</h3>
               <p className="text-sm mb-2 text-gray-700">{project.description}</p>
               <div className="text-sm italic text-gray-600">Technologies: {project.technologies.join(', ')}</div>
-              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium">View Project</a></div>}
+              {project.link && <div className="text-sm mt-1"><a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline transition-all duration-200">View Project</a></div>}
             </div>
           ))}
         </section>
@@ -104,11 +104,11 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
 
       {/* Certifications */}
       {data.certifications && data.certifications.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-8 animate-in slide-in-from-right-4 duration-1000 delay-1200">
           <h2 className="text-sm font-bold uppercase mb-4 text-blue-600 border-l-4 border-blue-600 pl-3">CERTIFICATIONS</h2>
           <ul className="text-sm space-y-2">
             {data.certifications.map((cert, index) => (
-              <li key={index} className="flex justify-between font-medium">
+              <li key={index} className="flex justify-between font-medium animate-in fade-in-0 duration-600" style={{ animationDelay: `${1300 + index * 100}ms` }}>
                 <span className="text-gray-800">{cert.name} - {cert.issuer}</span>
                 <span className="text-gray-700">{cert.date}</span>
               </li>
