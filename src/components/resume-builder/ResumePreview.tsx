@@ -1173,9 +1173,9 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
   
   const renderTemplate = () => {
     switch (templateId) {
-      case 'blue-monogram': return renderBlueMonogramTemplate(resumeData);
-      case 'classic': return renderClassicTemplate(resumeData);
-      case 'intelligent': return renderIntelligentTemplate(resumeData);
+      case 'tech-professional': return renderTechProfessional(resumeData);
+      case 'creative-professional': return renderCreativeProfessional(resumeData);
+      case 'corporate-executive': return renderCorporateExecutive(resumeData);
       case 'novel': return renderNovelTemplate(resumeData);
       case 'spotlight': return renderSpotlightTemplate(resumeData);
       case 'patterns': return renderPatternsTemplate(resumeData);
@@ -1183,7 +1183,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
       case 'quote-bubble': return renderQuoteBubbleTemplate(resumeData);
       case 'trendy': return renderTrendyTemplate(resumeData);
       case 'unique': return renderUniqueTemplate(resumeData);
-      default: return renderBlueMonogramTemplate(resumeData);
+      default: return renderTechProfessional(resumeData);
     }
   };
 
