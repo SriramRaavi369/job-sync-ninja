@@ -69,7 +69,7 @@ const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
           title: `${parsedData.fullName || "My Resume"} - ${new Date().toLocaleDateString()}`,
           content: parsedData,
           is_ats_optimized: false
-        })
+        } as any)
         .select()
         .single();
 
