@@ -4,12 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import type { ParsedResumeData } from "@/pages/ResumeBuilder";
 import mammoth from "mammoth";
 
 interface ResumeUploadProps {
-  onResumeUploaded: (data: ParsedResumeData, resumeId?: string) => void;
+  onResumeUploaded: (data: ParsedResumeData) => void;
 }
 
 const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
@@ -54,38 +53,6 @@ const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
     };
   };
 
-  const saveResumeToDatabase = async (parsedData: ParsedResumeData) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-
-      const { data, error } = await supabase
-        .from("resumes")
-        .insert({
-          user_id: user.id,
-          title: `${parsedData.fullName || "My Resume"} - ${new Date().toLocaleDateString()}`,
-          content: parsedData,
-          is_ats_optimized: false
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return data.id;
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to save resume to database.",
-        variant: "destructive",
-      });
-      return null;
-    }
-  };
-
   const processFile = async (file: File) => {
     setIsProcessing(true);
     try {
@@ -100,8 +67,7 @@ const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
           // Simple text extraction - in production use pdf.js
           text = "PDF parsing would go here";
           const parsedData = parseResumeText(text);
-          const resumeId = await saveResumeToDatabase(parsedData);
-          onResumeUploaded(parsedData, resumeId || undefined);
+          onResumeUploaded(parsedData);
           setIsProcessing(false);
         };
         reader.readAsArrayBuffer(file);
@@ -113,19 +79,17 @@ const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
           const result = await mammoth.extractRawText({ arrayBuffer });
           text = result.value;
           const parsedData = parseResumeText(text);
-          const resumeId = await saveResumeToDatabase(parsedData);
-          onResumeUploaded(parsedData, resumeId || undefined);
+          onResumeUploaded(parsedData);
           setIsProcessing(false);
         };
         reader.readAsArrayBuffer(file);
       } else if (file.type === "text/plain") {
         // Handle text files
         const reader = new FileReader();
-        reader.onload = async (e) => {
+        reader.onload = (e) => {
           text = e.target?.result as string;
           const parsedData = parseResumeText(text);
-          const resumeId = await saveResumeToDatabase(parsedData);
-          onResumeUploaded(parsedData, resumeId || undefined);
+          onResumeUploaded(parsedData);
           setIsProcessing(false);
         };
         reader.readAsText(file);
