@@ -24,6 +24,7 @@ interface ResumeEditorProps {
   parsedData: ParsedResumeData;
   templateId: string;
   userId: string;
+  resumeId?: string;
   onDataChange: (data: ParsedResumeData) => void; // New prop
 }
 
@@ -32,7 +33,7 @@ interface ATSWarning {
   message: string;
 }
 
-const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEditorProps) => {
+const ResumeEditor = ({ parsedData, templateId, userId, resumeId, onDataChange }: ResumeEditorProps) => {
   const [resumeData, setResumeData] = useState<ParsedResumeData>(parsedData);
   const [atsWarnings, setAtsWarnings] = useState<ATSWarning[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -147,22 +148,43 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { error } = await supabase.from("resumes").insert({
-        user_id: userId,
-        title: `${resumeData.fullName || "My"} Resume`,
-        content: resumeData as any,
-        is_ats_optimized: true,
-      });
+      if (resumeId) {
+        // Update existing resume
+        const { error } = await supabase
+          .from("resumes")
+          .update({
+            title: `${resumeData.fullName || "My"} Resume`,
+            content: resumeData as any,
+            is_ats_optimized: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", resumeId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Resume saved successfully!",
-      });
+        toast({
+          title: "Success",
+          description: "Resume updated successfully!",
+        });
+      } else {
+        // Create new resume
+        const { error } = await supabase.from("resumes").insert({
+          user_id: userId,
+          title: `${resumeData.fullName || "My"} Resume`,
+          content: resumeData as any,
+          is_ats_optimized: true,
+        } as any);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Resume saved successfully!",
+        });
+      }
 
       setTimeout(() => {
-        navigate("/resumes");
+        navigate("/dashboard");
       }, 1500);
     } catch (error: any) {
       toast({
