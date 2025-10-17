@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Briefcase, LogOut, FileText, User } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Resume = Tables<"resumes">;
 
 interface Job {
   id: string;
@@ -99,7 +102,11 @@ const Dashboard = () => {
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => navigate("/resumes")}>
               <FileText className="h-4 w-4 mr-2" />
-              Resumes
+              Templates
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/myresumes")}>
+              <FileText className="h-4 w-4 mr-2" />
+              My Resumes
             </Button>
             <Button variant="ghost" onClick={() => navigate("/profile")}>
               <User className="h-4 w-4 mr-2" />

@@ -152,6 +152,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
         title: `${resumeData.fullName || "My"} Resume`,
         content: resumeData as any,
         is_ats_optimized: true,
+        type: 'created',
       });
 
       if (error) throw error;

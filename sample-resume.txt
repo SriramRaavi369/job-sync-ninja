@@ -1,0 +1,17 @@
+John Doe
+Software Engineer
+john.doe@email.com
+(123) 456-7890
+linkedin.com/in/johndoe
+
+Summary
+Experienced software engineer with 5 years in full-stack development.
+
+Experience
+Senior Developer, Tech Corp, New York, NY
+Jan 2020 - Present
+- Led team in developing web applications
+- Implemented CI/CD pipelines
+
+Education
+BS Computer Science, University of Example, 2019

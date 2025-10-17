@@ -144,6 +144,7 @@ export type Database = {
           id: string
           is_ats_optimized: boolean | null
           title: string
+          type: string
           updated_at: string | null
           user_id: string
         }
@@ -153,6 +154,7 @@ export type Database = {
           id?: string
           is_ats_optimized?: boolean | null
           title: string
+          type?: string
           updated_at?: string | null
           user_id: string
         }
@@ -162,6 +164,7 @@ export type Database = {
           id?: string
           is_ats_optimized?: boolean | null
           title?: string
+          type?: string
           updated_at?: string | null
           user_id?: string
         }

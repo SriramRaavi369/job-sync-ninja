@@ -9,6 +9,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Resumes = lazy(() => import("./pages/Resumes"));
+const MyResumes = lazy(() => import("./pages/MyResumes"));
 const ResumeBuilder = lazy(() => import("./pages/ResumeBuilder"));
 const ResumeGuide = lazy(() => import("./pages/ResumeGuide"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -36,7 +37,10 @@ const App = () => {
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/resumes" element={<Resumes />} />
+              <Route path="/my-resumes" element={<MyResumes />} />
+              <Route path="/myresumes" element={<MyResumes />} />
               <Route path="/resumes/new" element={<ResumeBuilder />} />
+              <Route path="/resume-builder" element={<ResumeBuilder />} />
               <Route path="/resume-guide" element={<ResumeGuide />} />
               <Route path="/profile" element={<Profile />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

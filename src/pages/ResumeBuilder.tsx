@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileEdit, UploadCloud, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import type { Json, TablesInsert } from "@/integrations/supabase/types";
 import mammoth from "mammoth";
 import TemplateSelection from "@/components/resume-builder/TemplateSelection";
 import ResumeEditor from "@/components/resume-builder/ResumeEditor";
@@ -332,14 +333,43 @@ const ResumeBuilder = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      processFile(file, (data) => {
+    if (file && user) {
+      processFile(file, async (data) => {
         setParsedData(data);
         setEditedData(data);
         setIsStartingFromScratch(false);
         setCurrentStep("template");
+
+        // Save parsed resume to Supabase
+        try {
+          const title = data.fullName ? `${data.fullName}'s Resume` : "Uploaded Resume";
+          const resumeInsert: TablesInsert<"resumes"> = {
+            title,
+            content: data as unknown as Json,
+            is_ats_optimized: false,
+            type: 'uploaded',
+            user_id: user.id,
+          };
+
+          const { error } = await supabase
+            .from("resumes")
+            .insert(resumeInsert);
+
+          if (error) throw error;
+
+          toast({
+            title: "Success",
+            description: "Resume uploaded and saved successfully!",
+          });
+        } catch (error: any) {
+          toast({
+            title: "Error",
+            description: "Failed to save resume. You can save it later in the editor.",
+            variant: "destructive",
+          });
+        }
       }, setIsProcessing, toast);
     }
   };
