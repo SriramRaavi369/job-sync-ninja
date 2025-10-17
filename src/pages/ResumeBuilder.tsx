@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileEdit, UploadCloud, Loader2 } from "lucide-react";
@@ -321,7 +321,6 @@ const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
   }
 };
 const ResumeBuilder = () => {
-  const { resumeId } = useParams();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [currentStep, setCurrentStep] = useState<"upload" | "template" | "editor">("upload");
   const [parsedData, setParsedData] = useState<ParsedResumeData | null>(null);
@@ -329,7 +328,6 @@ const ResumeBuilder = () => {
   const [editedData, setEditedData] = useState<ParsedResumeData | null>(getSampleDataForTemplate("executive"));
   const [isStartingFromScratch, setIsStartingFromScratch] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -360,39 +358,10 @@ const ResumeBuilder = () => {
       }
 
       setUser(session.user);
-
-      // If resumeId exists, load that resume
-      if (resumeId) {
-        setIsProcessing(true);
-        const { data: resume, error } = await supabase
-          .from("resumes")
-          .select("*")
-          .eq("id", resumeId)
-          .single();
-
-        if (error || !resume) {
-          toast({
-            title: "Error",
-            description: "Failed to load resume.",
-            variant: "destructive",
-          });
-          navigate("/dashboard");
-          return;
-        }
-
-        // Load the resume data
-        const resumeData = resume.content as unknown as ParsedResumeData;
-        setParsedData(resumeData);
-        setEditedData(resumeData);
-        setCurrentResumeId(resume.id);
-        setSelectedTemplate("custom"); // Mark as custom template for uploaded resumes
-        setCurrentStep("editor");
-        setIsProcessing(false);
-      }
     };
 
     checkUser();
-  }, [navigate, resumeId, toast]);
+  }, [navigate]);
 
   const handleStartFromScratch = () => {
     const sampleData = getSampleDataForTemplate("executive");
@@ -503,7 +472,6 @@ const ResumeBuilder = () => {
                 parsedData={editedData}
                 templateId={selectedTemplate}
                 userId={user?.id || ""}
-                resumeId={currentResumeId || undefined}
                 onDataChange={handleEditorChange}
               />
             </div>
