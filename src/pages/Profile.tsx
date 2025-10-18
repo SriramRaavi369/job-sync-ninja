@@ -1,13 +1,14 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Briefcase, ArrowLeft, Save } from "lucide-react";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface Profile {
   full_name: string | null;
@@ -17,7 +18,7 @@ interface Profile {
 }
 
 const Profile = () => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile>({
     full_name: "",
     email: "",
@@ -28,39 +29,36 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const auth = getAuth();
+  const db = getFirestore();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+        fetchProfile(user.uid);
+        // Set the email from the user object, as it's the most reliable source
+        setProfile(prevProfile => ({ ...prevProfile, email: user.email }));
+      } else {
         navigate("/auth");
-        return;
       }
+    });
 
-      setUser(session.user);
-      fetchProfile(session.user.id);
-    };
-
-    checkUser();
-  }, [navigate]);
+    return () => unsubscribe();
+  }, [auth, navigate]);
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      const docRef = doc(db, "profiles", userId);
+      const docSnap = await getDoc(docRef);
 
-      if (error && error.code !== "PGRST116") throw error;
-
-      if (data) {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
         setProfile({
-          full_name: data.full_name,
-          email: data.email,
-          phone: data.phone,
-          linkedin_url: data.linkedin_url,
+          full_name: data.full_name || "",
+          email: data.email || user?.email || "",
+          phone: data.phone || "",
+          linkedin_url: data.linkedin_url || "",
         });
       }
     } catch (error: any) {
@@ -79,14 +77,8 @@ const Profile = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          ...profile,
-        });
-
-      if (error) throw error;
+        const profileRef = doc(db, "profiles", user.uid);
+        await setDoc(profileRef, profile, { merge: true });
 
       toast({
         title: "Success",
@@ -146,6 +138,7 @@ const Profile = () => {
                 value={profile.email || ""}
                 onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                 placeholder="john@example.com"
+                disabled // Email is usually managed by the auth provider
               />
             </div>
 

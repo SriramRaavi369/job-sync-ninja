@@ -1,6 +1,13 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { 
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider
+} from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +21,9 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOtpVerification, setShowOtpVerification] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [pendingEmail, setPendingEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const auth = getAuth();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,118 +31,20 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          toast({
-            title: "Sign In Failed",
-            description: error.message === "Invalid login credentials" 
-              ? "Incorrect email or password. Please try again or sign up if you don't have an account."
-              : error.message,
-            variant: "destructive",
-          });
-          return;
-        }
-
+        await signInWithEmailAndPassword(auth, email, password);
         toast({
           title: "Welcome back!",
           description: "You've successfully logged in.",
         });
         navigate("/dashboard");
       } else {
-        // Proceed with signup
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-            },
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-          },
-        });
-
-        if (error) {
-          if (error.message.includes("User already registered")) {
-            toast({
-              title: "Account Already Exists",
-              description: "An account with this email already exists. Please sign in instead.",
-              variant: "destructive",
-            });
-            setIsLogin(true);
-            return;
-          }
-          throw error;
-        }
-
+        await createUserWithEmailAndPassword(auth, email, password);
         toast({
           title: "Account Created!",
           description: "You've been signed up successfully. Redirecting to dashboard...",
         });
-
-        // Since auto-confirm is enabled, user is automatically signed in
-        setTimeout(() => navigate("/dashboard"), 1500);
+        navigate("/dashboard");
       }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: pendingEmail,
-        token: otp,
-        type: 'signup'
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Email verified!",
-        description: "Your account has been created successfully.",
-      });
-      navigate("/dashboard");
-    } catch (error: any) {
-      toast({
-        title: "Invalid OTP",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: pendingEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Verification email resent!",
-        description: "Please check your email for the new verification link.",
-      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -151,104 +58,21 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    const provider = new GoogleAuthProvider();
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // If successful, the user will be redirected
+      await signInWithPopup(auth, provider);
+      navigate("/dashboard");
     } catch (error: any) {
-      const errorMessage = error.message || "Failed to sign in with Google";
-      
-      if (errorMessage.includes("provider is not enabled")) {
-        toast({
-          title: "Google Sign-In Not Configured",
-          description: "Please configure Google OAuth in your backend settings to use this feature.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
     }
   };
 
-  // Email Verification Screen
-  if (showOtpVerification) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <Mail className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-            <h1 className="text-3xl font-bold">Check Your Email</h1>
-            <p className="text-muted-foreground mt-2">
-              We've sent a verification link to <strong>{pendingEmail}</strong>
-            </p>
-            <p className="text-sm text-muted-foreground mt-4">
-              Click the link in your email to verify your account and complete registration.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">Didn't receive the email?</h3>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Check your spam/junk folder</li>
-                <li>• Make sure the email address is correct</li>
-                <li>• Wait a few minutes for delivery</li>
-              </ul>
-            </div>
-
-            <Button
-              type="button"
-              onClick={handleResendOtp}
-              disabled={loading}
-              variant="outline"
-              className="w-full"
-            >
-              {loading ? "Sending..." : "Resend Verification Email"}
-            </Button>
-          </div>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setShowOtpVerification(false);
-                setOtp("");
-                setPendingEmail("");
-              }}
-              className="text-sm text-muted-foreground hover:underline flex items-center justify-center gap-2 mx-auto"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to sign up
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Main Authentication Screen
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
@@ -264,7 +88,6 @@ const Auth = () => {
           </p>
         </div>
 
-        {/* Google Sign In Button */}
         <Button
           type="button"
           className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 shadow-sm"
@@ -353,7 +176,6 @@ const Auth = () => {
             type="button"
             onClick={() => {
               setIsLogin(!isLogin);
-              // Clear form fields when switching
               setEmail("");
               setPassword("");
               setFullName("");

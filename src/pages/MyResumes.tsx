@@ -1,213 +1,197 @@
-import { useEffect, useState, useRef } from "react";
+
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useDataFetching } from "@/hooks/useDataFetching";
 import { FileText, Plus, ArrowLeft, Upload, Loader2 } from "lucide-react";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
-import type { Json, Tables, TablesInsert } from "@/integrations/supabase/types";
-import mammoth from "mammoth";
+import * as pdfjs from "pdfjs-dist";
+import { TextItem } from "pdfjs-dist/types/src/display/api";
 
-type Resume = Tables<"resumes">;
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface ParsedResumeData {
-  fullName: string;
-  email: string;
-  phone: string;
-  location: string;
-  linkedin: string;
-  summary: string;
-  experience: Array<{
-    title: string;
-    company: string;
+    fullName: string;
+    email: string;
+    phone: string;
     location: string;
-    startDate: string;
-    endDate: string;
-    description: string[];
-  }>;
-  education: Array<{
-    degree: string;
-    institution: string;
-    location: string;
-    graduationDate: string;
-    gpa?: string;
-  }>;
-  skills: string[];
-  projects: Array<{
-    name: string;
-    description: string;
-    technologies: string[];
-    link?: string;
-  }>;
-  certifications: Array<{
-    name: string;
-    issuer: string;
-    date: string;
-  }>;
-}
-
-const parseResumeText = (text: string): ParsedResumeData => {
-  const lines = text.split('\n').filter(line => line.trim());
-  const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/;
-  const emailMatch = text.match(emailRegex);
-  const email = emailMatch ? emailMatch[0] : "";
-  const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
-  const phoneMatch = text.match(phoneRegex);
-  const phone = phoneMatch ? phoneMatch[0] : "";
-  const linkedinRegex = /(linkedin\.com\/in\/[\w-]+)/;
-  const linkedinMatch = text.match(linkedinRegex);
-  const linkedin = linkedinMatch ? linkedinMatch[0] : "";
-  const fullName = lines[0] || "Your Name";
-
-  return {
-    fullName,
-    email,
-    phone,
-    location: "",
-    linkedin,
-    summary: "",
-    experience: [],
-    education: [],
-    skills: [],
-    projects: [],
-    certifications: []
+    linkedin: string;
+    summary: string;
+    experience: Array<{
+      title: string;
+      company: string;
+      location: string;
+      startDate: string;
+      endDate: string;
+      description: string[];
+    }>;
+    education: Array<{
+      degree: string;
+      institution: string;
+      location: string;
+      graduationDate: string;
+      gpa?: string;
+    }>;
+    skills: string[];
+    projects: Array<{
+      name: string;
+      description: string;
+      technologies: string[];
+      link?: string;
+    }>;
+    certifications: Array<{
+      name: string;
+      issuer: string;
+      date: string;
+    }>;
+    thumbnail?: string;
+  }
+  
+  interface Resume {
+      id: string;
+      title: string;
+      content: ParsedResumeData;
+      is_ats_optimized: boolean;
+      type: 'uploaded' | 'created';
+      user_id: string;
+      updated_at: { seconds: number, nanoseconds: number };
+  }
+  
+  const parseResumeText = (text: string): ParsedResumeData => {
+    const lines = text.split('\n').filter(line => line.trim());
+    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/;
+    const emailMatch = text.match(emailRegex);
+    const email = emailMatch ? emailMatch[0] : "";
+    const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+    const phoneMatch = text.match(phoneRegex);
+    const phone = phoneMatch ? phoneMatch[0] : "";
+    const linkedinRegex = /(linkedin\.com\/in\/[\w-]+)/;
+    const linkedinMatch = text.match(linkedinRegex);
+    const linkedin = linkedinMatch ? linkedinMatch[0] : "";
+    const fullName = lines[0] || "Your Name";
+  
+    return {
+      fullName,
+      email,
+      phone,
+      location: "",
+      linkedin,
+      summary: "",
+      experience: [],
+      education: [],
+      skills: [],
+      projects: [],
+      certifications: []
+    };
   };
-};
 
 const MyResumes = () => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [resumes, setResumes] = useState<Resume[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { data: resumes, loading: resumesLoading, authLoading } = useDataFetching<Resume>('resumes', 'updated_at', { filterByUser: true, limit: 50 });
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const db = getFirestore();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      setUser(session.user);
-    };
-
-    checkUser();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchResumes();
-    }
-  }, [user]);
-
-  const fetchResumes = async () => {
-    if (!user) return;
-    setLoading(true);
+  const generatePdfThumbnail = async (file: File): Promise<string | undefined> => {
     try {
-      const { data, error } = await supabase
-        .from("resumes")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 0.5 }); 
+      const canvas = document.createElement('canvas');
+      const canvasContext = canvas.getContext('2d');
+      if (!canvasContext) return undefined;
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
 
-      if (error) throw error;
-
-      setResumes(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch resumes.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      await page.render({ canvasContext, viewport, canvas }).promise;
+      return canvas.toDataURL(); 
+    } catch (error) {
+      console.error("Error generating PDF thumbnail:", error);
+      return undefined;
     }
   };
 
   const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => void) => {
-    setIsProcessing(true);
-    try {
-      let text = "";
-      let parsedData: ParsedResumeData;
+    let parsedData: ParsedResumeData = parseResumeText("");
+    let thumbnail: string | undefined = undefined;
 
-      if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-        const arrayBuffer = await file.arrayBuffer();
+    if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const mammoth = (await import("mammoth")).default;
         const result = await mammoth.extractRawText({ arrayBuffer });
-        text = result.value;
+        const text = result.value;
         parsedData = parseResumeText(text);
         onSuccess(parsedData);
-      } else if (file.type === "text/plain") {
-        text = await file.text();
-        parsedData = parseResumeText(text);
-        onSuccess(parsedData);
-      } else if (file.type === "application/pdf") {
-        toast({
-          title: "PDF Uploaded",
-          description: "PDF file saved. Content parsing for PDFs is not currently supported.",
-        });
-        parsedData = {
-          fullName: file.name,
-          email: "",
-          phone: "",
-          location: "",
-          linkedin: "",
-          summary: "This is a PDF document. Content has not been parsed.",
-          experience: [],
-          education: [],
-          skills: [],
-          projects: [],
-          certifications: []
+      };
+      reader.readAsArrayBuffer(file);
+    } else if (file.type === "application/pdf") {
+        thumbnail = await generatePdfThumbnail(file);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = await pdfjs.getDocument({data: e.target?.result as ArrayBuffer}).promise.then(pdf => {
+                const maxPages = pdf.numPages;
+                const countPromises = [];
+                for (let j = 1; j <= maxPages; j++) {
+                    const page = pdf.getPage(j);
+                    countPromises.push(page.then((page) => {
+                        const textContent = page.getTextContent();
+                        return textContent.then((textContent) => {
+                            // Filter for TextItem and then map to str
+                            return textContent.items.filter((item): item is TextItem => 'str' in item).map(s => s.str).join('');
+                        });
+                    }));
+                }
+                return Promise.all(countPromises).then((texts) => {
+                    return texts.join('');
+                });
+            });
+            parsedData = parseResumeText(text);
+            parsedData.thumbnail = thumbnail; // Assign thumbnail here
+            onSuccess(parsedData); // Call onSuccess after parsedData is fully populated
         };
+        reader.readAsArrayBuffer(file);
+    }
+    else {
+      // Fallback for other file types like .txt
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        parsedData = parseResumeText(text);
         onSuccess(parsedData);
-      } else {
-        throw new Error("Unsupported file type. Please upload a .docx, .txt, or .pdf file.");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error Processing File",
-        description: error.message || "Failed to process resume file.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
+      };
+      reader.readAsText(file);
     }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && user) {
+      setIsProcessing(true);
       await processFile(file, async (data) => {
         try {
           const title = data.fullName || file.name;
-
-          const resumeInsert: TablesInsert<"resumes"> = {
+          const resumeInsert = {
             title,
-            content: data as unknown as Json,
+            content: data,
             is_ats_optimized: false,
-            type: 'uploaded',
-            user_id: user.id,
+            type: 'uploaded' as 'uploaded',
+            user_id: user.uid,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
           };
 
-          const { data: newResume, error } = await supabase
-            .from("resumes")
-            .insert(resumeInsert)
-            .select()
-            .single();
-
-          if (error) {
-            throw error;
-          }
-          
-          if (newResume) {
-            setResumes(prevResumes => [newResume, ...prevResumes]);
-          }
+          await addDoc(collection(db, "resumes"), resumeInsert);
 
           toast({
             title: "Success",
@@ -223,9 +207,9 @@ const MyResumes = () => {
           });
         }
       });
+      setIsProcessing(false);
     }
   };
-
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -234,10 +218,10 @@ const MyResumes = () => {
   const uploadedResumes = resumes.filter((r) => r.type === "uploaded");
   const savedResumes = resumes.filter((r) => r.type === "created" || !r.type);
 
-  if (loading && !isProcessing) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -270,6 +254,11 @@ const MyResumes = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {resumesLoading ? (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        ) : (
         <Tabs defaultValue="uploaded" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="uploaded">Resumes uploaded by you ({uploadedResumes.length})</TabsTrigger>
@@ -281,7 +270,11 @@ const MyResumes = () => {
                 {uploadedResumes.map((resume) => (
                   <Card key={resume.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/resume-builder/${resume.id}`)}>
                     <div className="flex items-start justify-between mb-4">
-                      <FileText className="h-8 w-8 text-primary" />
+                      {resume.content.thumbnail ? (
+                        <img src={resume.content.thumbnail} alt={`${resume.title} thumbnail`} className="w-20 h-28 object-cover border rounded-md" />
+                      ) : (
+                        <FileText className="h-8 w-8 text-primary" />
+                      )}
                       <div className="flex gap-2">
                         <Badge variant="secondary">Uploaded</Badge>
                         {resume.is_ats_optimized && (
@@ -291,7 +284,7 @@ const MyResumes = () => {
                     </div>
                     <h3 className="font-semibold text-lg mb-2">{resume.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Last updated {new Date(resume.updated_at).toLocaleDateString()}
+                      Last updated {new Date(resume.updated_at.seconds * 1000).toLocaleDateString()}
                     </p>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="flex-1">
@@ -343,7 +336,7 @@ const MyResumes = () => {
                     </div>
                     <h3 className="font-semibold text-lg mb-2">{resume.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Last updated {new Date(resume.updated_at).toLocaleDateString()}
+                      Last updated {new Date(resume.updated_at.seconds * 1000).toLocaleDateString()}
                     </p>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="flex-1">
@@ -371,6 +364,7 @@ const MyResumes = () => {
             )}
           </TabsContent>
         </Tabs>
+        )}
       </main>
     </div>
   );

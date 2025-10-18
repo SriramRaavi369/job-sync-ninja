@@ -1,29 +1,27 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, ArrowLeft, FileText } from "lucide-react";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const Resumes = () => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
+  const auth = getAuth();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+      } else {
         navigate("/auth");
-        return;
       }
+    });
 
-      setUser(session.user);
-    };
-
-    checkUser();
-  }, [navigate]);
+    return () => unsubscribe();
+  }, [auth, navigate]);
 
   return (
     <div className="min-h-screen bg-background">

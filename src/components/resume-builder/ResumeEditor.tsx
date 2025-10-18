@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import {
   Save,
   Download,
@@ -18,7 +19,6 @@ import {
   Lightbulb,
 } from "lucide-react";
 import type { ParsedResumeData } from "@/pages/ResumeBuilder";
-import jsPDF from "jspdf";
 
 interface ResumeEditorProps {
   parsedData: ParsedResumeData;
@@ -40,6 +40,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
   const resumePreviewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const db = getFirestore();
 
   useEffect(() => {
     setResumeData(parsedData);
@@ -72,7 +73,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
         type: "tip",
         message: "Add education details for a complete profile.",
       });
-    }
+    };
 
     if (!data.skills || data.skills.length === 0) {
       warnings.push({
@@ -92,7 +93,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
     setAtsWarnings(warnings);
   };
 
-  const updateField = (field: keyof ParsedResumeData, value: any) => {
+  const updateField = <K extends keyof ParsedResumeData>(field: K, value: ParsedResumeData[K]) => {
     const newData = { ...resumeData, [field]: value };
     setResumeData(newData);
     onDataChange(newData); // Call onDataChange
@@ -111,7 +112,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
     updateField("experience", [...resumeData.experience, newExp]);
   };
 
-  const updateExperience = (index: number, field: string, value: any) => {
+  const updateExperience = (index: number, field: keyof ParsedResumeData['experience'][number], value: string | string[]) => {
     const newExperience = [...resumeData.experience];
     newExperience[index] = { ...newExperience[index], [field]: value };
     updateField("experience", newExperience);
@@ -133,7 +134,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
     updateField("education", [...resumeData.education, newEdu]);
   };
 
-  const updateEducation = (index: number, field: string, value: string) => {
+  const updateEducation = (index: number, field: keyof ParsedResumeData['education'][number], value: string) => {
     const newEducation = [...resumeData.education];
     newEducation[index] = { ...newEducation[index], [field]: value };
     updateField("education", newEducation);
@@ -144,18 +145,60 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
     updateField("education", newEducation);
   };
 
+  const addProject = () => {
+    const newProject = {
+      name: "",
+      description: "",
+      technologies: [],
+      link: "",
+    };
+    updateField("projects", [...resumeData.projects, newProject]);
+  };
+
+  const updateProject = (index: number, field: keyof ParsedResumeData['projects'][number], value: string | string[]) => {
+    const newProjects = [...resumeData.projects];
+    newProjects[index] = { ...newProjects[index], [field]: value };
+    updateField("projects", newProjects);
+  };
+
+  const removeProject = (index: number) => {
+    const newProjects = resumeData.projects.filter((_, i) => i !== index);
+    updateField("projects", newProjects);
+  };
+
+  const addCertification = () => {
+    const newCert = {
+      name: "",
+      issuer: "",
+      date: "",
+    };
+    updateField("certifications", [...resumeData.certifications, newCert]);
+  };
+
+  const updateCertification = (index: number, field: keyof ParsedResumeData['certifications'][number], value: string) => {
+    const newCertifications = [...resumeData.certifications];
+    newCertifications[index] = { ...newCertifications[index], [field]: value };
+    updateField("certifications", newCertifications);
+  };
+
+  const removeCertification = (index: number) => {
+    const newCertifications = resumeData.certifications.filter((_, i) => i !== index);
+    updateField("certifications", newCertifications);
+  };
+
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { error } = await supabase.from("resumes").insert({
+      await addDoc(collection(db, "resumes"), {
         user_id: userId,
         title: `${resumeData.fullName || "My"} Resume`,
-        content: resumeData as any,
+        content: resumeData,
         is_ats_optimized: true,
         type: 'created',
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
       });
-
-      if (error) throw error;
 
       toast({
         title: "Success",
@@ -165,10 +208,10 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
       setTimeout(() => {
         navigate("/resumes");
       }, 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to save resume.",
+        description: (error as Error).message || "Failed to save resume.",
         variant: "destructive",
       });
     } finally {
@@ -179,128 +222,36 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
   const exportToPDF = async () => {
     setIsExporting(true);
     try {
+      const { jsPDF } = await import("jspdf");
+      const html2canvas = (await import("html2canvas")).default;
+
+      if (!resumePreviewRef.current) {
+        throw new Error("Resume preview element not found.");
+      }
+
+      const canvas = await html2canvas(resumePreviewRef.current, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 15;
-      const contentWidth = pageWidth - 2 * margin;
-      let yPosition = margin;
+      const imgWidth = 210; 
+      const pageHeight = 297; 
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
 
-      const addText = (text: string, fontSize: number, isBold: boolean = false) => {
-        pdf.setFontSize(fontSize);
-        pdf.setFont("helvetica", isBold ? "bold" : "normal");
-        const lines = pdf.splitTextToSize(text, contentWidth);
-        
-        lines.forEach((line: string) => {
-          if (yPosition > 280) {
-            pdf.addPage();
-            yPosition = margin;
-          }
-          pdf.text(line, margin, yPosition);
-          yPosition += fontSize * 0.5;
-        });
-        yPosition += 2;
-      };
+      let position = 0;
 
-      pdf.setFontSize(20);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(resumeData.fullName || "Your Name", margin, yPosition);
-      yPosition += 8;
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
 
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "normal");
-      const contactInfo = [
-        resumeData.email,
-        resumeData.phone,
-        resumeData.location,
-        resumeData.linkedin,
-      ].filter(Boolean).join(" | ");
-      
-      if (contactInfo) {
-        addText(contactInfo, 10);
-      }
-
-      yPosition += 3;
-      pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 8;
-
-      if (resumeData.summary) {
-        addText("PROFESSIONAL SUMMARY", 12, true);
-        addText(resumeData.summary, 10);
-        yPosition += 3;
-      }
-
-      if (resumeData.experience.length > 0) {
-        addText("WORK EXPERIENCE", 12, true);
-        
-        resumeData.experience.forEach((exp) => {
-          addText(`${exp.title} at ${exp.company}`, 11, true);
-          const expDetails = [exp.location, `${exp.startDate} - ${exp.endDate}`]
-            .filter(Boolean)
-            .join(" | ");
-          if (expDetails) {
-            addText(expDetails, 10);
-          }
-          
-          exp.description.forEach((desc) => {
-            if (desc.trim()) {
-              addText(`• ${desc}`, 10);
-            }
-          });
-          yPosition += 3;
-        });
-      }
-
-      if (resumeData.education.length > 0) {
-        addText("EDUCATION", 12, true);
-        
-        resumeData.education.forEach((edu) => {
-          addText(`${edu.degree}`, 11, true);
-          const eduDetails = [
-            edu.institution,
-            edu.location,
-            edu.graduationDate,
-            edu.gpa ? `GPA: ${edu.gpa}` : "",
-          ].filter(Boolean).join(" | ");
-          if (eduDetails) {
-            addText(eduDetails, 10);
-          }
-          yPosition += 3;
-        });
-      }
-
-      if (resumeData.skills.length > 0) {
-        addText("SKILLS", 12, true);
-        addText(resumeData.skills.join(", "), 10);
-        yPosition += 3;
-      }
-
-      if (resumeData.projects.length > 0) {
-        addText("PROJECTS", 12, true);
-        
-        resumeData.projects.forEach((project) => {
-          addText(project.name, 11, true);
-          addText(project.description, 10);
-          if (project.technologies.length > 0) {
-            addText(`Technologies: ${project.technologies.join(", ")}`, 10);
-          }
-          if (project.link) {
-            addText(`Link: ${project.link}`, 10);
-          }
-          yPosition += 3;
-        });
-      }
-
-      if (resumeData.certifications.length > 0) {
-        addText("CERTIFICATIONS", 12, true);
-        
-        resumeData.certifications.forEach((cert) => {
-          addText(`${cert.name} - ${cert.issuer} (${cert.date})`, 10);
-        });
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
 
       const fileName = resumeData.fullName
@@ -313,7 +264,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
         title: "Success",
         description: "Resume exported as PDF successfully!",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
         description: "Failed to export PDF. Please try again.",
@@ -377,7 +328,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
-                  value={resumeData.fullName}
+                  value={resumeData.fullName ?? ''}
                   onChange={(e) => updateField("fullName", e.target.value)}
                   placeholder="John Doe"
                 />
@@ -388,7 +339,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
                   <Input
                     id="email"
                     type="email"
-                    value={resumeData.email}
+                    value={resumeData.email ?? ''}
                     onChange={(e) => updateField("email", e.target.value)}
                     placeholder="john@example.com"
                   />
@@ -397,7 +348,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
                   <Label htmlFor="phone">Phone</Label>
                   <Input
                     id="phone"
-                    value={resumeData.phone}
+                    value={resumeData.phone ?? ''}
                     onChange={(e) => updateField("phone", e.target.value)}
                     placeholder="+1 (555) 123-4567"
                   />
@@ -408,7 +359,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
                   <Label htmlFor="location">Location</Label>
                   <Input
                     id="location"
-                    value={resumeData.location}
+                    value={resumeData.location ?? ''}
                     onChange={(e) => updateField("location", e.target.value)}
                     placeholder="San Francisco, CA"
                   />
@@ -417,7 +368,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
                   <Label htmlFor="linkedin">LinkedIn</Label>
                   <Input
                     id="linkedin"
-                    value={resumeData.linkedin}
+                    value={resumeData.linkedin ?? ''}
                     onChange={(e) => updateField("linkedin", e.target.value)}
                     placeholder="linkedin.com/in/johndoe"
                   />
@@ -429,7 +380,7 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Professional Summary</h2>
             <Textarea
-              value={resumeData.summary}
+              value={resumeData.summary ?? ''}
               onChange={(e) => updateField("summary", e.target.value)}
               placeholder="Write a brief summary of your professional background and key qualifications..."
               rows={4}
@@ -578,6 +529,112 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
               ))}
             </div>
           </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Projects</h2>
+              <Button variant="outline" size="sm" onClick={addProject}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Project
+              </Button>
+            </div>
+            <div className="space-y-6">
+              {resumeData.projects.map((project, idx) => (
+                <div key={idx} className="border rounded-lg p-4 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium">Project {idx + 1}</h3>
+                    <Button variant="ghost" size="sm" onClick={() => removeProject(idx)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div>
+                    <Label>Project Name</Label>
+                    <Input
+                      value={project.name}
+                      onChange={(e) => updateProject(idx, "name", e.target.value)}
+                      placeholder="E-commerce Platform"
+                    />
+                  </div>
+                  <div>
+                    <Label>Description</Label>
+                    <Textarea
+                      value={project.description}
+                      onChange={(e) => updateProject(idx, "description", e.target.value)}
+                      placeholder="Briefly describe your project..."
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label>Technologies (comma-separated)</Label>
+                    <Input
+                      value={project.technologies.join(", ")}
+                      onChange={(e) =>
+                        updateProject(idx, "technologies", e.target.value.split(",").map((s) => s.trim()))
+                      }
+                      placeholder="React, Node.js, MongoDB"
+                    />
+                  </div>
+                  <div>
+                    <Label>Link (Optional)</Label>
+                    <Input
+                      value={project.link || ""}
+                      onChange={(e) => updateProject(idx, "link", e.target.value)}
+                      placeholder="https://github.com/yourproject"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Certifications</h2>
+              <Button variant="outline" size="sm" onClick={addCertification}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Certification
+              </Button>
+            </div>
+            <div className="space-y-6">
+              {resumeData.certifications.map((cert, idx) => (
+                <div key={idx} className="border rounded-lg p-4 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium">Certification {idx + 1}</h3>
+                    <Button variant="ghost" size="sm" onClick={() => removeCertification(idx)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div>
+                    <Label>Name</Label>
+                    <Input
+                      value={cert.name}
+                      onChange={(e) => updateCertification(idx, "name", e.target.value)}
+                      placeholder="AWS Certified Developer - Associate"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Issuer</Label>
+                      <Input
+                        value={cert.issuer}
+                        onChange={(e) => updateCertification(idx, "issuer", e.target.value)}
+                        placeholder="Amazon Web Services"
+                      />
+                    </div>
+                    <div>
+                      <Label>Date</Label>
+                      <Input
+                        value={cert.date}
+                        onChange={(e) => updateCertification(idx, "date", e.target.value)}
+                        placeholder="2023"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
 
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Skills</h2>

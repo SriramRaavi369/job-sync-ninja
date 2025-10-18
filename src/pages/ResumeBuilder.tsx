@@ -1,15 +1,14 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileEdit, UploadCloud, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
-import type { Json, TablesInsert } from "@/integrations/supabase/types";
-import mammoth from "mammoth";
 import TemplateSelection from "@/components/resume-builder/TemplateSelection";
 import ResumeEditor from "@/components/resume-builder/ResumeEditor";
-import ResumePreview from "@/components/resume-builder/ResumePreview"; 
+import ResumePreview from "@/components/resume-builder/ResumePreview";
 
 export interface ParsedResumeData {
   fullName: string;
@@ -45,29 +44,20 @@ export interface ParsedResumeData {
     issuer: string;
     date: string;
   }>;
+  thumbnail?: string;
 }
 
 const parseResumeText = (text: string): ParsedResumeData => {
-  // Basic parsing logic - this is a simplified version
-  // In production, you'd want to use more sophisticated NLP or AI parsing
   const lines = text.split('\n').filter(line => line.trim());
-  
-  // Extract email
   const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/;
   const emailMatch = text.match(emailRegex);
   const email = emailMatch ? emailMatch[0] : "";
-
-  // Extract phone
   const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
   const phoneMatch = text.match(phoneRegex);
   const phone = phoneMatch ? phoneMatch[0] : "";
-
-  // Extract LinkedIn
   const linkedinRegex = /(linkedin\.com\/in\/[\w-]+)/;
   const linkedinMatch = text.match(linkedinRegex);
   const linkedin = linkedinMatch ? linkedinMatch[0] : "";
-
-  // Extract name (assume first non-empty line is the name)
   const fullName = lines[0] || "Your Name";
 
   return {
@@ -89,25 +79,50 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
   setIsProcessing(true);
   try {
     let text = "";
+    let thumbnail = "";
 
     if (file.type === "application/pdf") {
-      // For PDF files, we'll use a simple text extraction
-      // In production, you'd want to use pdf.js or similar
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const buffer = e.target?.result as ArrayBuffer;
-        // Simple text extraction - in production use pdf.js
-        text = "PDF parsing would go here";
-        const parsedData = parseResumeText(text);
-        onSuccess(parsedData);
-        setIsProcessing(false);
+        try {
+          const pdfJS = await import('pdfjs-dist');
+          pdfJS.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfJS.version}/pdf.worker.min.js`;
+
+          const typedArray = new Uint8Array(e.target?.result as ArrayBuffer);
+          const pdf = await pdfJS.getDocument(typedArray).promise;
+          const page = await pdf.getPage(1);
+          
+          // Get text content for parsing
+          const textContent = await page.getTextContent();
+          text = textContent.items.map((item: any) => item.str).join(' ');
+
+          // Create thumbnail
+          const viewport = page.getViewport({ scale: 0.5 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          if (context) {
+            await page.render({ canvasContext: context, viewport: viewport, canvas: canvas }).promise;
+            thumbnail = canvas.toDataURL();
+          }
+
+          const parsedData = { ...parseResumeText(text), thumbnail };
+          onSuccess(parsedData);
+        } catch (pdfError) {
+          console.error("Error processing PDF:", pdfError);
+          toast({ title: "Error", description: "Failed to process PDF file.", variant: "destructive" });
+        } finally {
+          setIsProcessing(false);
+        }
       };
       reader.readAsArrayBuffer(file);
     } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      // Handle DOCX files
       const reader = new FileReader();
       reader.onload = async (e) => {
         const arrayBuffer = e.target?.result as ArrayBuffer;
+        const mammoth = (await import("mammoth")).default;
         const result = await mammoth.extractRawText({ arrayBuffer });
         text = result.value;
         const parsedData = parseResumeText(text);
@@ -116,7 +131,6 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
       };
       reader.readAsArrayBuffer(file);
     } else if (file.type === "text/plain") {
-      // Handle text files
       const reader = new FileReader();
       reader.onload = (e) => {
         text = e.target?.result as string;
@@ -137,8 +151,9 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
     setIsProcessing(false);
   }
 };
+
 const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
-  const baseData = {
+    const baseData = {
     fullName: "Alexandra Chen",
     email: "alexandra.chen@email.com",
     phone: "(555) 123-4567",
@@ -321,8 +336,9 @@ const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
       };
   }
 };
+
 const ResumeBuilder = () => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [currentStep, setCurrentStep] = useState<"upload" | "template" | "editor">("upload");
   const [parsedData, setParsedData] = useState<ParsedResumeData | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("executive");
@@ -332,6 +348,19 @@ const ResumeBuilder = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const auth = getAuth();
+  const db = getFirestore();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+      } else {
+        navigate("/auth");
+      }
+    });
+    return () => unsubscribe();
+  }, [auth, navigate]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -342,22 +371,17 @@ const ResumeBuilder = () => {
         setIsStartingFromScratch(false);
         setCurrentStep("template");
 
-        // Save parsed resume to Supabase
         try {
           const title = data.fullName ? `${data.fullName}'s Resume` : "Uploaded Resume";
-          const resumeInsert: TablesInsert<"resumes"> = {
+          await addDoc(collection(db, "resumes"), {
             title,
-            content: data as unknown as Json,
+            content: data,
             is_ats_optimized: false,
             type: 'uploaded',
-            user_id: user.id,
-          };
-
-          const { error } = await supabase
-            .from("resumes")
-            .insert(resumeInsert);
-
-          if (error) throw error;
+            user_id: user.uid,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+          });
 
           toast({
             title: "Success",
@@ -377,21 +401,6 @@ const ResumeBuilder = () => {
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      setUser(session.user);
-    };
-
-    checkUser();
-  }, [navigate]);
 
   const handleStartFromScratch = () => {
     const sampleData = getSampleDataForTemplate("executive");
@@ -501,7 +510,7 @@ const ResumeBuilder = () => {
                 key={selectedTemplate}
                 parsedData={editedData}
                 templateId={selectedTemplate}
-                userId={user?.id || ""}
+                userId={user?.uid || ""}
                 onDataChange={handleEditorChange}
               />
             </div>

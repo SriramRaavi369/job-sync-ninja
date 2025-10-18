@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuth, signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, LogOut, FileText, User } from "lucide-react";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
-import type { Tables } from "@/integrations/supabase/types";
-
-type Resume = Tables<"resumes">;
+import { useDataFetching } from "@/hooks/useDataFetching";
+import { Briefcase, LogOut, FileText, User as UserIcon, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton component
 
 interface Job {
   id: string;
@@ -22,71 +20,28 @@ interface Job {
 }
 
 const Dashboard = () => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: jobs, loading: jobsLoading, authLoading } = useDataFetching<Job>('jobs', 'posted_at', { filterByUser: false, limit: 20 });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const auth = getAuth();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      setUser(session.user);
-      fetchJobs();
-    };
-
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!session) {
-          navigate("/auth");
-        } else {
-          setUser(session.user);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const fetchJobs = async () => {
+  const handleLogout = async () => {
     try {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .order("posted_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-
-      setJobs(data || []);
-    } catch (error: any) {
+      await signOut(auth);
+      navigate("/");
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to fetch jobs.",
+        description: "Failed to sign out.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
-
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -109,7 +64,7 @@ const Dashboard = () => {
               My Resumes
             </Button>
             <Button variant="ghost" onClick={() => navigate("/profile")}>
-              <User className="h-4 w-4 mr-2" />
+              <UserIcon className="h-4 w-4 mr-2" />
               Profile
             </Button>
             <Button variant="outline" onClick={handleLogout}>
@@ -128,7 +83,19 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {jobs.length === 0 ? (
+        {jobsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, index) => (
+                    <Card key={index} className="p-6">
+                        <Skeleton className="h-6 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2 mb-1" />
+                        <Skeleton className="h-4 w-2/3 mb-3" />
+                        <Skeleton className="h-4 w-1/4 mb-4" />
+                        <Skeleton className="h-4 w-1/3" />
+                    </Card>
+                ))}
+            </div>
+        ) : jobs.length === 0 ? (
           <Card className="p-8 text-center">
             <Briefcase className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl font-semibold mb-2">No jobs available yet</h3>
