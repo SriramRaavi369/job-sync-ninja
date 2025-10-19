@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -646,11 +646,37 @@ const templates: Template[] = [
   },
 ];
 
+
 const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelectionProps) => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
 
-  const recommendedTemplates = templates.filter((t) => t.recommended);
-  const allTemplates = templates;
+  let localTemplates = [...templates];
+  if (parsedData.originalTemplate) {
+    const originalTemplate: Template = {
+      id: "original",
+      name: "Original Template",
+      description: "Preserve the layout, fonts, and structure from your uploaded resume for authentic editing.",
+      preview: "Your uploaded resume format",
+      atsOptimized: true,
+      recommended: true,
+      recommendedReason: "Matches your original design exactly while allowing editable content.",
+      features: [
+        "Original layout preserved",
+        "Detected fonts and spacing",
+        "Section structure from upload",
+        "Authentic visual format",
+      ],
+      previewComponent: (
+        <div className="scale-[0.5] origin-top-left w-[200%] h-[200%] p-4">
+          <ResumePreview resumeData={parsedData} templateId="original" />
+        </div>
+      ),
+    };
+    localTemplates.unshift(originalTemplate);
+  }
+
+  const recommendedTemplates = localTemplates.filter((t) => t.recommended);
+  const allTemplates = localTemplates;
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
@@ -661,6 +687,13 @@ const TemplateSelection = ({ parsedData, onTemplateSelected }: TemplateSelection
       onTemplateSelected(selectedTemplate);
     }
   };
+
+  // If original template exists, pre-select it
+  useEffect(() => {
+    if (parsedData.originalTemplate && !selectedTemplate) {
+      setSelectedTemplate("original");
+    }
+  }, [parsedData.originalTemplate, selectedTemplate]);
 
   return (
     <div className="max-w-7xl mx-auto animate-in fade-in-0 duration-1000">

@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataFetching } from "@/hooks/useDataFetching";
-import { FileText, Plus, ArrowLeft, Upload, Loader2, User, Mail, Phone, Briefcase, Code } from "lucide-react";
+import { FileText, Plus, ArrowLeft, Upload, Loader2, User, Mail, Phone, Briefcase, Code, Trash } from "lucide-react";
 import { TextItem } from "pdfjs-dist/types/src/display/api";
 
 interface ParsedResumeData {
@@ -93,6 +94,7 @@ const MyResumes = () => {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
+  const [resumeToDelete, setResumeToDelete] = useState<Resume | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -233,11 +235,35 @@ const MyResumes = () => {
         }
       });
       setIsProcessing(false);
+      // Reset file input to allow re-uploading the same file
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleDeleteResume = async () => {
+    if (!resumeToDelete) return;
+
+    try {
+      await deleteDoc(doc(db, "resumes", resumeToDelete.id));
+      setResumes(currentResumes => currentResumes.filter(r => r.id !== resumeToDelete.id));
+      toast({
+        title: "Success",
+        description: "Resume deleted successfully!",
+      });
+    } catch (error: any) {
+      console.error("Error deleting resume:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete the resume.",
+        variant: "destructive",
+      });
+    } finally {
+      setResumeToDelete(null);
+    }
   };
 
   const uploadedResumes = resumes.filter((r) => r.type === "uploaded");
@@ -284,85 +310,122 @@ const MyResumes = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         ) : (
-        <Tabs defaultValue="uploaded" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="uploaded">Resumes uploaded by you ({uploadedResumes.length})</TabsTrigger>
-            <TabsTrigger value="saved">Saved resumes ({savedResumes.length})</TabsTrigger>
-          </TabsList>
+        <>
+          <Tabs defaultValue="uploaded" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="uploaded">Resumes uploaded by you ({uploadedResumes.length})</TabsTrigger>
+              <TabsTrigger value="saved">Saved resumes ({savedResumes.length})</TabsTrigger>
+            </TabsList>
           <TabsContent value="uploaded" className="mt-6">
             {uploadedResumes.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {uploadedResumes.map((resume) => (
-                  <Card key={resume.id} className="p-6 bg-gradient-to-br from-background to-muted hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden" onClick={() => navigate(`/resume-builder/${resume.id}`)}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="relative">
-                        {resume.content.thumbnail ? (
-                          <img src={resume.content.thumbnail} alt={`${resume.title} thumbnail`} className="w-24 h-32 object-cover rounded-lg shadow-sm border" />
+              <>
+                <div className="mb-6">
+                  <Card className="p-4 border-0 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="text-center sm:text-left">
+                        <h3 className="text-lg font-semibold mb-1">Add More Resumes</h3>
+                        <p className="text-sm text-muted-foreground">Upload additional resumes to optimize with AI tools</p>
+                      </div>
+                      <Button onClick={handleUploadClick} disabled={isProcessing} className="w-full sm:w-auto">
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
                         ) : (
-                          <div className="w-24 h-32 bg-muted rounded-lg flex items-center justify-center">
-                            <FileText className="h-8 w-8 text-primary" />
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload Resume
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center sm:text-left mt-2">
+                      Supports PDF, DOCX, and TXT files
+                    </p>
+                  </Card>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {uploadedResumes.map((resume) => (
+                    <Card key={resume.id} className="p-6 bg-gradient-to-br from-background to-muted hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden" onClick={() => navigate(`/resume-builder/${resume.id}`)}>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="relative">
+                          {resume.content.thumbnail ? (
+                            <img src={resume.content.thumbnail} alt={`${resume.title} thumbnail`} className="w-24 h-32 object-cover rounded-lg shadow-sm border" />
+                          ) : (
+                            <div className="w-24 h-32 bg-muted rounded-lg flex items-center justify-center">
+                              <FileText className="h-8 w-8 text-primary" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2 self-start">
+                          <div className="flex gap-2">
+                            <Badge variant="secondary">Uploaded</Badge>
+                            {resume.is_ats_optimized && (
+                              <Badge variant="default">ATS Optimized</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(resume.updated_at.seconds * 1000).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <h3 className="font-semibold text-lg mb-3 line-clamp-1">{resume.title}</h3>
+                      <div className="mb-4 space-y-2">
+                        {resume.content.summary && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">{resume.content.summary}</p>
+                        )}
+                        {resume.content.skills && resume.content.skills.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {resume.content.skills.slice(0, 3).map((skill) => (
+                              <Badge key={skill} variant="outline" className="text-xs">
+                                {skill}
+                              </Badge>
+                            ))}
+                            {resume.content.skills.length > 3 && (
+                              <Badge variant="outline" className="text-xs">+{resume.content.skills.length - 3}</Badge>
+                            )}
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col gap-2 self-start">
-                        <div className="flex gap-2">
-                          <Badge variant="secondary">Uploaded</Badge>
-                          {resume.is_ats_optimized && (
-                            <Badge variant="default">ATS Optimized</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(resume.updated_at.seconds * 1000).toLocaleDateString()}
-                        </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedResume(resume);
+                          }}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/resume-builder/${resume.id}`);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setResumeToDelete(resume);
+                          }}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                    <h3 className="font-semibold text-lg mb-3 line-clamp-1">{resume.title}</h3>
-                    <div className="mb-4 space-y-2">
-                      {resume.content.summary && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{resume.content.summary}</p>
-                      )}
-                      {resume.content.skills && resume.content.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {resume.content.skills.slice(0, 3).map((skill) => (
-                            <Badge key={skill} variant="outline" className="text-xs">
-                              {skill}
-                            </Badge>
-                          ))}
-                          {resume.content.skills.length > 3 && (
-                            <Badge variant="outline" className="text-xs">+{resume.content.skills.length - 3}</Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedResume(resume);
-                        }}
-                      >
-                        View
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/resume-builder/${resume.id}`);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                    </Card>
+                  ))}
+                </div>
+              </>
             ) : (
               <Card className="p-8 text-center border-0 shadow-sm">
-                <div className="opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards]">
+                <div className="animate-[fadeIn_0.5s_ease-in-out_forwards]">
                   <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-2xl font-semibold mb-2">No resumes uploaded yet</h3>
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
@@ -387,105 +450,143 @@ const MyResumes = () => {
                 </div>
               </Card>
             )}
-            <Dialog open={!!selectedResume} onOpenChange={() => setSelectedResume(null)}>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{selectedResume?.title}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  {selectedResume?.content.fullName && (
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <span className="font-medium">{selectedResume.content.fullName}</span>
-                    </div>
-                  )}
-                  {selectedResume?.content.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      <span>{selectedResume.content.email}</span>
-                    </div>
-                  )}
-                  {selectedResume?.content.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      <span>{selectedResume.content.phone}</span>
-                    </div>
-                  )}
-                  {selectedResume?.content.summary && (
-                    <div>
-                      <h4 className="font-medium mb-1 flex items-center gap-1">
-                        <Briefcase className="h-4 w-4" />
-                        Summary
-                      </h4>
-                      <p className="text-sm text-muted-foreground">{selectedResume.content.summary}</p>
-                    </div>
-                  )}
-                  {selectedResume?.content.skills && selectedResume.content.skills.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-1 flex items-center gap-1">
-                        <Code className="h-4 w-4" />
-                        Skills
-                      </h4>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedResume.content.skills.map((skill) => (
-                          <Badge key={skill} variant="outline" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
+              <Dialog open={!!selectedResume} onOpenChange={() => setSelectedResume(null)}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>{selectedResume?.title}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    {selectedResume?.content.fullName && (
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="font-medium">{selectedResume.content.fullName}</span>
                       </div>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground text-center mt-4">
-                    Full details available in the editor.
-                  </p>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </TabsContent>
-          <TabsContent value="saved" className="mt-6">
-            {savedResumes.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {savedResumes.map((resume) => (
-                  <Card key={resume.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/resume-builder/${resume.id}`)}>
-                    <div className="flex items-start justify-between mb-4">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div className="flex gap-2">
-                        <Badge variant="secondary">{resume.type === "created" ? "Created" : "Saved"}</Badge>
-                        {resume.is_ats_optimized && (
-                          <Badge variant="default">ATS Optimized</Badge>
-                        )}
+                    )}
+                    {selectedResume?.content.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <span>{selectedResume.content.email}</span>
                       </div>
-                    </div>
-                    <h3 className="font-semibold text-lg mb-2">{resume.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Last updated {new Date(resume.updated_at.seconds * 1000).toLocaleDateString()}
+                    )}
+                    {selectedResume?.content.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        <span>{selectedResume.content.phone}</span>
+                      </div>
+                    )}
+                    {selectedResume?.content.summary && (
+                      <div>
+                        <h4 className="font-medium mb-1 flex items-center gap-1">
+                          <Briefcase className="h-4 w-4" />
+                          Summary
+                        </h4>
+                        <p className="text-sm text-muted-foreground">{selectedResume.content.summary}</p>
+                      </div>
+                    )}
+                    {selectedResume?.content.skills && selectedResume.content.skills.length > 0 && (
+                      <div>
+                        <h4 className="font-medium mb-1 flex items-center gap-1">
+                          <Code className="h-4 w-4" />
+                          Skills
+                        </h4>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedResume.content.skills.map((skill) => (
+                            <Badge key={skill} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground text-center mt-4">
+                      Full details available in the editor.
                     </p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        View
-                      </Button>
-                      <Button size="sm" className="flex-1">
-                        Edit
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-8 text-center">
-                <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">No saved resumes yet</h3>
-                <p className="text-muted-foreground mb-6">
-                  Create your first resume using our builder to get personalized templates and ATS optimization.
-                </p>
-                <Button onClick={() => navigate("/resumes/new")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create New Resume
-                </Button>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </TabsContent>
+            <TabsContent value="saved" className="mt-6">
+              {savedResumes.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {savedResumes.map((resume) => (
+                    <Card key={resume.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/resume-builder/${resume.id}`)}>
+                      <div className="flex items-start justify-between mb-4">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div className="flex gap-2">
+                          <Badge variant="secondary">{resume.type === "created" ? "Created" : "Saved"}</Badge>
+                          {resume.is_ats_optimized && (
+                            <Badge variant="default">ATS Optimized</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <h3 className="font-semibold text-lg mb-2">{resume.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Last updated {new Date(resume.updated_at.seconds * 1000).toLocaleDateString()}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedResume(resume);
+                          }}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/resume-builder/${resume.id}`);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setResumeToDelete(resume);
+                          }}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-8 text-center">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">No saved resumes yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Create your first resume using our builder to get personalized templates and ATS optimization.
+                  </p>
+                  <Button onClick={() => navigate("/resumes/new")}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create New Resume
+                  </Button>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+          <AlertDialog open={!!resumeToDelete} onOpenChange={() => setResumeToDelete(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Resume</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{resumeToDelete?.title}"? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteResume}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
         )}
       </main>
     </div>

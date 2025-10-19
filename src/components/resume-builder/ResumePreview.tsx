@@ -803,6 +803,158 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
     </div>
   );
 
+  // TEMPLATE 11: Original Template (preserves uploaded resume structure)
+  const renderOriginal = (data: ParsedResumeData) => {
+    if (!data.originalTemplate) return renderExecutive(data);
+
+    const { originalTemplate } = data;
+
+    return (
+      <div className="bg-white p-8 text-gray-900" style={originalTemplate.pageStyle || {}}>
+        {/* Header Section */}
+        {originalTemplate.header && (
+          <header className="mb-6" style={originalTemplate.header.style || {}}>
+            <h1 className="text-3xl font-bold mb-2" style={originalTemplate.header.nameStyle || {}}>
+              {data.fullName}
+            </h1>
+            <div className="text-sm space-y-1" style={originalTemplate.header.contactStyle || {}}>
+              {data.email && <div>{data.email}</div>}
+              {data.phone && <div>{data.phone}</div>}
+              {data.location && <div>{data.location}</div>}
+              {data.linkedin && <div>{data.linkedin}</div>}
+            </div>
+          </header>
+        )}
+
+        {/* Summary Section */}
+        {originalTemplate.summary && data.summary && (
+          <section className="mb-6" style={originalTemplate.summary.style || {}}>
+            <h2 className="text-lg font-bold mb-2" style={originalTemplate.summary.titleStyle || {}}>
+              {originalTemplate.summary.title || 'Summary'}
+            </h2>
+            <p className="text-sm leading-relaxed" style={originalTemplate.summary.contentStyle || {}}>
+              {data.summary}
+            </p>
+          </section>
+        )}
+
+        {/* Experience Section */}
+        {originalTemplate.experience && data.experience && data.experience.length > 0 && (
+          <section className="mb-6" style={originalTemplate.experience.style || {}}>
+            <h2 className="text-lg font-bold mb-3" style={originalTemplate.experience.sectionTitleStyle || {}}>
+              {originalTemplate.experience.title || 'Experience'}
+            </h2>
+            {data.experience.map((exp, idx) => (
+              <div key={idx} className="mb-4" style={originalTemplate.experience.itemStyle || {}}>
+                <div className="flex justify-between mb-1" style={originalTemplate.experience.headerStyle || {}}>
+                  <h3 className="font-bold text-sm" style={originalTemplate.experience.jobTitleStyle || {}}>
+                    {exp.title}
+                  </h3>
+                  <span className="text-sm" style={originalTemplate.experience.dateStyle || {}}>
+                    {exp.startDate} - {exp.endDate}
+                  </span>
+                </div>
+                <div className="flex justify-between mb-2" style={originalTemplate.experience.subheaderStyle || {}}>
+                  <span className="font-semibold text-sm" style={originalTemplate.experience.companyStyle || {}}>
+                    {exp.company}
+                  </span>
+                  <span className="text-sm" style={originalTemplate.experience.locationStyle || {}}>
+                    {exp.location}
+                  </span>
+                </div>
+                <ul className="space-y-1" style={originalTemplate.experience.listStyle || {}}>
+                  {exp.description.map((desc, i) => desc.trim() && (
+                    <li key={i} className="text-sm ml-4 list-disc" style={originalTemplate.experience.bulletStyle || {}}>
+                      {desc}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Education Section */}
+        {originalTemplate.education && data.education && data.education.length > 0 && (
+          <section className="mb-6" style={originalTemplate.education.style || {}}>
+            <h2 className="text-lg font-bold mb-3" style={originalTemplate.education.titleStyle || {}}>
+              {originalTemplate.education.title || 'Education'}
+            </h2>
+            {data.education.map((edu, idx) => (
+              <div key={idx} className="mb-3" style={originalTemplate.education.itemStyle || {}}>
+                <div className="flex justify-between" style={originalTemplate.education.headerStyle || {}}>
+                  <span className="font-bold text-sm" style={originalTemplate.education.degreeStyle || {}}>
+                    {edu.degree}
+                  </span>
+                  <span className="text-sm" style={originalTemplate.education.dateStyle || {}}>
+                    {edu.graduationDate}
+                  </span>
+                </div>
+                <div className="text-sm" style={originalTemplate.education.institutionStyle || {}}>
+                  {edu.institution}, {edu.location}
+                </div>
+                {edu.gpa && <div className="text-sm" style={originalTemplate.education.gpaStyle || {}}>
+                  GPA: {edu.gpa}
+                </div>}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Skills Section */}
+        {originalTemplate.skills && data.skills && data.skills.length > 0 && (
+          <section className="mb-6" style={originalTemplate.skills.style || {}}>
+            <h2 className="text-lg font-bold mb-2" style={originalTemplate.skills.titleStyle || {}}>
+              {originalTemplate.skills.title || 'Skills'}
+            </h2>
+            <div className="text-sm" style={originalTemplate.skills.contentStyle || {}}>
+              {data.skills.join(' • ')}
+            </div>
+          </section>
+        )}
+
+        {/* Projects Section */}
+        {originalTemplate.projects && data.projects && data.projects.length > 0 && (
+          <section className="mb-6" style={originalTemplate.projects.style || {}}>
+            <h2 className="text-lg font-bold mb-3" style={originalTemplate.projects.titleStyle || {}}>
+              {originalTemplate.projects.title || 'Projects'}
+            </h2>
+            {data.projects.map((proj, idx) => (
+              <div key={idx} className="mb-3" style={originalTemplate.projects.itemStyle || {}}>
+                <h3 className="font-bold text-sm" style={originalTemplate.projects.nameStyle || {}}>
+                  {proj.name}
+                </h3>
+                <p className="text-sm mb-1" style={originalTemplate.projects.descriptionStyle || {}}>
+                  {proj.description}
+                </p>
+                <p className="text-xs text-gray-600" style={originalTemplate.projects.techStyle || {}}>
+                  Tech Stack: {proj.technologies.join(', ')}
+                </p>
+                {proj.link && <p className="text-xs text-gray-600" style={originalTemplate.projects.linkStyle || {}}>
+                  {proj.link}
+                </p>}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Certifications Section */}
+        {originalTemplate.certifications && data.certifications && data.certifications.length > 0 && (
+          <section className="mb-6" style={originalTemplate.certifications.style || {}}>
+            <h2 className="text-lg font-bold mb-2" style={originalTemplate.certifications.titleStyle || {}}>
+              {originalTemplate.certifications.title || 'Certifications'}
+            </h2>
+            {data.certifications.map((cert, idx) => (
+              <div key={idx} className="text-sm mb-1" style={originalTemplate.certifications.itemStyle || {}}>
+                {cert.name} - {cert.issuer} ({cert.date})
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
+    );
+  };
+
   const renderTemplate = () => {
     switch (templateId) {
       case 'executive': return renderExecutive(resumeData);
@@ -815,6 +967,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, templateId })
       case 'project-manager': return renderProjectManager(resumeData);
       case 'creative': return renderCreative(resumeData);
       case 'healthcare': return renderHealthcare(resumeData);
+      case 'original': return renderOriginal(resumeData);
       default: return renderExecutive(resumeData);
     }
   };

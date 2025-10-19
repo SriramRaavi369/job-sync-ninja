@@ -21,6 +21,66 @@ export interface OriginalTemplateMetadata {
     items: Array<{ text: string; x: number; y: number; style: { fontSize: number; bold: boolean; italic?: boolean; } }>;
   }>;
   rawFile?: string; // base64 of original for reference/overlay
+  pageStyle?: React.CSSProperties;
+  header?: {
+    style?: React.CSSProperties;
+    nameStyle?: React.CSSProperties;
+    contactStyle?: React.CSSProperties;
+  };
+  summary?: {
+    style?: React.CSSProperties;
+    titleStyle?: React.CSSProperties;
+    contentStyle?: React.CSSProperties;
+    title?: string;
+  };
+  experience?: {
+    style?: React.CSSProperties;
+    sectionTitleStyle?: React.CSSProperties;
+    itemStyle?: React.CSSProperties;
+    headerStyle?: React.CSSProperties;
+    jobTitleStyle?: React.CSSProperties;
+    companyStyle?: React.CSSProperties;
+    locationStyle?: React.CSSProperties;
+    dateStyle?: React.CSSProperties;
+    subheaderStyle?: React.CSSProperties;
+    listStyle?: React.CSSProperties;
+    bulletStyle?: React.CSSProperties;
+    title?: string;
+  };
+  education?: {
+    style?: React.CSSProperties;
+    titleStyle?: React.CSSProperties;
+    itemStyle?: React.CSSProperties;
+    headerStyle?: React.CSSProperties;
+    degreeStyle?: React.CSSProperties;
+    institutionStyle?: React.CSSProperties;
+    locationStyle?: React.CSSProperties;
+    dateStyle?: React.CSSProperties;
+    gpaStyle?: React.CSSProperties;
+    title?: string;
+  };
+  skills?: {
+    style?: React.CSSProperties;
+    titleStyle?: React.CSSProperties;
+    contentStyle?: React.CSSProperties;
+    title?: string;
+  };
+  projects?: {
+    style?: React.CSSProperties;
+    titleStyle?: React.CSSProperties;
+    itemStyle?: React.CSSProperties;
+    nameStyle?: React.CSSProperties;
+    descriptionStyle?: React.CSSProperties;
+    techStyle?: React.CSSProperties;
+    linkStyle?: React.CSSProperties;
+    title?: string;
+  };
+  certifications?: {
+    style?: React.CSSProperties;
+    titleStyle?: React.CSSProperties;
+    itemStyle?: React.CSSProperties;
+    title?: string;
+  };
 }
 
 export interface ParsedResumeData {
@@ -152,7 +212,7 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
           canvas.width = viewport.width;
 
           if (context) {
-            await page.render({ canvasContext: context, viewport: viewport, canvas: canvas }).promise;
+            await page.render({ canvasContext: context, viewport }).promise;
             thumbnail = canvas.toDataURL();
           }
 
@@ -497,8 +557,9 @@ const ResumeBuilder = () => {
         const resumeData = resumeDoc.data();
         setParsedData(resumeData.content);
         setEditedData(resumeData.content);
-        setSelectedTemplate("executive"); // Default template
-        setCurrentStep("editor");
+        setSelectedTemplate(resumeData.content.originalTemplate ? "original" : "executive"); // Use original if available
+        // If original template exists, allow template selection; otherwise go straight to editor
+        setCurrentStep(resumeData.content.originalTemplate ? "template" : "editor");
         setIsStartingFromScratch(false);
         toast({
           title: "Resume Loaded",
