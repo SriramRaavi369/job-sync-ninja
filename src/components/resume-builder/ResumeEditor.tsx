@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import {
   Save,
   Download,
@@ -25,6 +25,7 @@ interface ResumeEditorProps {
   templateId: string;
   userId: string;
   onDataChange: (data: ParsedResumeData) => void; // New prop
+  resumeId?: string; // Optional for editing existing resume
 }
 
 interface ATSWarning {
@@ -32,7 +33,7 @@ interface ATSWarning {
   message: string;
 }
 
-const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEditorProps) => {
+const ResumeEditor = ({ parsedData, templateId, userId, onDataChange, resumeId }: ResumeEditorProps) => {
   const [resumeData, setResumeData] = useState<ParsedResumeData>(parsedData);
   const [atsWarnings, setAtsWarnings] = useState<ATSWarning[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -190,23 +191,33 @@ const ResumeEditor = ({ parsedData, templateId, userId, onDataChange }: ResumeEd
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await addDoc(collection(db, "resumes"), {
-        user_id: userId,
-        title: `${resumeData.fullName || "My"} Resume`,
-        content: resumeData,
-        is_ats_optimized: true,
-        type: 'created',
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      });
+      if (resumeId) {
+        // Update existing resume
+        await updateDoc(doc(db, "resumes", resumeId), {
+          content: resumeData,
+          is_ats_optimized: true,
+          updated_at: serverTimestamp(),
+        });
+      } else {
+        // Create new resume
+        await addDoc(collection(db, "resumes"), {
+          user_id: userId,
+          title: `${resumeData.fullName || "My"} Resume`,
+          content: resumeData,
+          is_ats_optimized: true,
+          type: 'created',
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+        });
+      }
 
       toast({
         title: "Success",
-        description: "Resume saved successfully!",
+        description: resumeId ? "Resume updated successfully!" : "Resume saved successfully!",
       });
 
       setTimeout(() => {
-        navigate("/resumes");
+        navigate("/my-resumes");
       }, 1500);
     } catch (error: unknown) {
       toast({

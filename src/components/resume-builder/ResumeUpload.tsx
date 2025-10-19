@@ -7,6 +7,14 @@ import { useToast } from "@/hooks/use-toast";
 import type { ParsedResumeData } from "@/pages/ResumeBuilder";
 import mammoth from "mammoth";
 
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/build/pdf.mjs';
+
+// Set the worker source for pdf.js to use Vite's asset handling
+GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
+
 interface ResumeUploadProps {
   onResumeUploaded: (data: ParsedResumeData) => void;
 }
@@ -26,7 +34,7 @@ const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
     const email = emailMatch ? emailMatch[0] : "";
 
     // Extract phone
-    const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+    const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[--.\s]?\d{3}[-.\s]?\d{4}/;
     const phoneMatch = text.match(phoneRegex);
     const phone = phoneMatch ? phoneMatch[0] : "";
 
@@ -43,7 +51,7 @@ const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
       email,
       phone,
       location: "",
-      linkedin,
+      linkedin: "",
       summary: "",
       experience: [],
       education: [],
@@ -59,13 +67,20 @@ const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
       let text = "";
 
       if (file.type === "application/pdf") {
-        // For PDF files, we'll use a simple text extraction
-        // In production, you'd want to use pdf.js or similar
         const reader = new FileReader();
         reader.onload = async (e) => {
           const buffer = e.target?.result as ArrayBuffer;
-          // Simple text extraction - in production use pdf.js
-          text = "PDF parsing would go here";
+          const pdf = await getDocument({ data: buffer }).promise;
+          const numPages = pdf.numPages;
+          let fullPdfText = "";
+
+          for (let i = 1; i <= numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const pageText = content.items.map((item: any) => item.str).join(" ");
+            fullPdfText += pageText + "\n";
+          }
+          text = fullPdfText;
           const parsedData = parseResumeText(text);
           onResumeUploaded(parsedData);
           setIsProcessing(false);
@@ -97,6 +112,7 @@ const ResumeUpload = ({ onResumeUploaded }: ResumeUploadProps) => {
         throw new Error("Unsupported file type");
       }
     } catch (error) {
+      console.error("Error processing file:", error);
       toast({
         title: "Error",
         description: "Failed to process resume file. Please try again.",

@@ -49,6 +49,7 @@ const App = () => {
                 <Route path="/myresumes" element={<MyResumes />} />
                 <Route path="/resumes/new" element={<ResumeBuilder />} />
                 <Route path="/resume-builder" element={<ResumeBuilder />} />
+                <Route path="/resume-builder/:id" element={<ResumeBuilder />} />
                 <Route path="/resume-guide" element={<ResumeGuide />} />
                 <Route path="/profile" element={<Profile />} />
               </Route>

@@ -1,20 +1,16 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataFetching } from "@/hooks/useDataFetching";
-import { FileText, Plus, ArrowLeft, Upload, Loader2 } from "lucide-react";
-import * as pdfjs from "pdfjs-dist";
+import { FileText, Plus, ArrowLeft, Upload, Loader2, User, Mail, Phone, Briefcase, Code } from "lucide-react";
 import { TextItem } from "pdfjs-dist/types/src/display/api";
-
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface ParsedResumeData {
     fullName: string;
@@ -81,7 +77,7 @@ interface ParsedResumeData {
       email,
       phone,
       location: "",
-      linkedin,
+      linkedin: "",
       summary: "",
       experience: [],
       education: [],
@@ -93,17 +89,28 @@ interface ParsedResumeData {
 
 const MyResumes = () => {
   const { user } = useAuth();
-  const { data: resumes, loading: resumesLoading, authLoading } = useDataFetching<Resume>('resumes', 'updated_at', { filterByUser: true, limit: 50 });
+  const { data: fetchedResumes, loading: resumesLoading, authLoading } = useDataFetching<Resume>('resumes', 'updated_at', { filterByUser: true, limit: 50 });
+  const [resumes, setResumes] = useState<Resume[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const db = getFirestore();
 
+  useEffect(() => {
+    if(fetchedResumes) {
+        setResumes(fetchedResumes);
+    }
+  }, [fetchedResumes]);
+
   const generatePdfThumbnail = async (file: File): Promise<string | undefined> => {
     try {
+      const pdfJS = await import('pdfjs-dist');
+      pdfJS.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await pdfJS.getDocument({ data: arrayBuffer }).promise;
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 0.5 }); 
       const canvas = document.createElement('canvas');
@@ -112,7 +119,7 @@ const MyResumes = () => {
       canvas.height = viewport.height;
       canvas.width = viewport.width;
 
-      await page.render({ canvasContext, viewport, canvas }).promise;
+      await page.render({ canvasContext, viewport }).promise;
       return canvas.toDataURL(); 
     } catch (error) {
       console.error("Error generating PDF thumbnail:", error);
@@ -139,7 +146,10 @@ const MyResumes = () => {
         thumbnail = await generatePdfThumbnail(file);
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const text = await pdfjs.getDocument({data: e.target?.result as ArrayBuffer}).promise.then(pdf => {
+            const pdfJS = await import('pdfjs-dist');
+            pdfJS.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+
+            const text = await pdfJS.getDocument({data: e.target?.result as ArrayBuffer}).promise.then(pdf => {
                 const maxPages = pdf.numPages;
                 const countPromises = [];
                 for (let j = 1; j <= maxPages; j++) {
@@ -147,7 +157,6 @@ const MyResumes = () => {
                     countPromises.push(page.then((page) => {
                         const textContent = page.getTextContent();
                         return textContent.then((textContent) => {
-                            // Filter for TextItem and then map to str
                             return textContent.items.filter((item): item is TextItem => 'str' in item).map(s => s.str).join('');
                         });
                     }));
@@ -157,8 +166,8 @@ const MyResumes = () => {
                 });
             });
             parsedData = parseResumeText(text);
-            parsedData.thumbnail = thumbnail; // Assign thumbnail here
-            onSuccess(parsedData); // Call onSuccess after parsedData is fully populated
+            parsedData.thumbnail = thumbnail; 
+            onSuccess(parsedData); 
         };
         reader.readAsArrayBuffer(file);
     }
@@ -178,7 +187,9 @@ const MyResumes = () => {
     const file = e.target.files?.[0];
     if (file && user) {
       setIsProcessing(true);
+      console.log("Starting file processing for:", file.name);
       await processFile(file, async (data) => {
+        console.log("File processing successful. Attempting to save to the database.");
         try {
           const title = data.fullName || file.name;
           const resumeInsert = {
@@ -191,7 +202,21 @@ const MyResumes = () => {
             updated_at: serverTimestamp(),
           };
 
-          await addDoc(collection(db, "resumes"), resumeInsert);
+          console.log("Data to be saved:", resumeInsert);
+          const docRef = await addDoc(collection(db, "resumes"), resumeInsert);
+          console.log("Resume saved successfully to database with ID:", docRef.id);
+
+          const newResume: Resume = {
+            id: docRef.id,
+            title: resumeInsert.title,
+            content: resumeInsert.content,
+            is_ats_optimized: resumeInsert.is_ats_optimized,
+            type: resumeInsert.type,
+            user_id: resumeInsert.user_id,
+            updated_at: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+          };
+
+          setResumes(currentResumes => [newResume, ...currentResumes]);
 
           toast({
             title: "Success",
@@ -199,7 +224,7 @@ const MyResumes = () => {
           });
 
         } catch (error: any) {
-          console.error("Error saving resume:", error);
+          console.error("!!! Critical Error: Failed to save resume to database.", error);
           toast({
             title: "Error Saving Resume",
             description: error.message || "Failed to save the resume to the database.",
@@ -266,31 +291,69 @@ const MyResumes = () => {
           </TabsList>
           <TabsContent value="uploaded" className="mt-6">
             {uploadedResumes.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {uploadedResumes.map((resume) => (
-                  <Card key={resume.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/resume-builder/${resume.id}`)}>
+                  <Card key={resume.id} className="p-6 bg-gradient-to-br from-background to-muted hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden" onClick={() => navigate(`/resume-builder/${resume.id}`)}>
                     <div className="flex items-start justify-between mb-4">
-                      {resume.content.thumbnail ? (
-                        <img src={resume.content.thumbnail} alt={`${resume.title} thumbnail`} className="w-20 h-28 object-cover border rounded-md" />
-                      ) : (
-                        <FileText className="h-8 w-8 text-primary" />
-                      )}
-                      <div className="flex gap-2">
-                        <Badge variant="secondary">Uploaded</Badge>
-                        {resume.is_ats_optimized && (
-                          <Badge variant="default">ATS Optimized</Badge>
+                      <div className="relative">
+                        {resume.content.thumbnail ? (
+                          <img src={resume.content.thumbnail} alt={`${resume.title} thumbnail`} className="w-24 h-32 object-cover rounded-lg shadow-sm border" />
+                        ) : (
+                          <div className="w-24 h-32 bg-muted rounded-lg flex items-center justify-center">
+                            <FileText className="h-8 w-8 text-primary" />
+                          </div>
                         )}
                       </div>
+                      <div className="flex flex-col gap-2 self-start">
+                        <div className="flex gap-2">
+                          <Badge variant="secondary">Uploaded</Badge>
+                          {resume.is_ats_optimized && (
+                            <Badge variant="default">ATS Optimized</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(resume.updated_at.seconds * 1000).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">{resume.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Last updated {new Date(resume.updated_at.seconds * 1000).toLocaleDateString()}
-                    </p>
+                    <h3 className="font-semibold text-lg mb-3 line-clamp-1">{resume.title}</h3>
+                    <div className="mb-4 space-y-2">
+                      {resume.content.summary && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{resume.content.summary}</p>
+                      )}
+                      {resume.content.skills && resume.content.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {resume.content.skills.slice(0, 3).map((skill) => (
+                            <Badge key={skill} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {resume.content.skills.length > 3 && (
+                            <Badge variant="outline" className="text-xs">+{resume.content.skills.length - 3}</Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedResume(resume);
+                        }}
+                      >
                         View
                       </Button>
-                      <Button size="sm" className="flex-1">
+                      <Button 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/resume-builder/${resume.id}`);
+                        }}
+                      >
                         Edit
                       </Button>
                     </div>
@@ -298,27 +361,86 @@ const MyResumes = () => {
                 ))}
               </div>
             ) : (
-              <Card className="p-8 text-center">
-                <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">No resumes uploaded yet</h3>
-                <p className="text-muted-foreground mb-6">
-                  Upload your existing resume to optimize it with our AI tools and ATS-friendly templates.
-                </p>
-                <Button onClick={handleUploadClick} disabled={isProcessing}>
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Your Resume
-                    </>
-                  )}
-                </Button>
+              <Card className="p-8 text-center border-0 shadow-sm">
+                <div className="opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards]">
+                  <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-2xl font-semibold mb-2">No resumes uploaded yet</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Upload your existing resume to optimize it with our AI tools and ATS-friendly templates.
+                  </p>
+                  <Button onClick={handleUploadClick} disabled={isProcessing} className="w-full max-w-sm">
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Your Resume
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Supports PDF, DOCX, and TXT files
+                  </p>
+                </div>
               </Card>
             )}
+            <Dialog open={!!selectedResume} onOpenChange={() => setSelectedResume(null)}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{selectedResume?.title}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  {selectedResume?.content.fullName && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span className="font-medium">{selectedResume.content.fullName}</span>
+                    </div>
+                  )}
+                  {selectedResume?.content.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span>{selectedResume.content.email}</span>
+                    </div>
+                  )}
+                  {selectedResume?.content.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      <span>{selectedResume.content.phone}</span>
+                    </div>
+                  )}
+                  {selectedResume?.content.summary && (
+                    <div>
+                      <h4 className="font-medium mb-1 flex items-center gap-1">
+                        <Briefcase className="h-4 w-4" />
+                        Summary
+                      </h4>
+                      <p className="text-sm text-muted-foreground">{selectedResume.content.summary}</p>
+                    </div>
+                  )}
+                  {selectedResume?.content.skills && selectedResume.content.skills.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-1 flex items-center gap-1">
+                        <Code className="h-4 w-4" />
+                        Skills
+                      </h4>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedResume.content.skills.map((skill) => (
+                          <Badge key={skill} variant="outline" className="text-xs">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground text-center mt-4">
+                    Full details available in the editor.
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
           <TabsContent value="saved" className="mt-6">
             {savedResumes.length > 0 ? (

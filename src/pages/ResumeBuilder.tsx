@@ -1,14 +1,27 @@
 
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
-import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileEdit, UploadCloud, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import TemplateSelection from "@/components/resume-builder/TemplateSelection";
 import ResumeEditor from "@/components/resume-builder/ResumeEditor";
 import ResumePreview from "@/components/resume-builder/ResumePreview";
+
+export interface OriginalTemplateMetadata {
+  layout: 'one-column' | 'two-column' | 'custom';
+  fonts: { header: string; body: string; };
+  colors: { primary?: string; secondary?: string; }; // Limited detection; fallback to defaults
+  sections: Array<{
+    id: string;
+    title: string;
+    yStart: number;
+    items: Array<{ text: string; x: number; y: number; style: { fontSize: number; bold: boolean; italic?: boolean; } }>;
+  }>;
+  rawFile?: string; // base64 of original for reference/overlay
+}
 
 export interface ParsedResumeData {
   fullName: string;
@@ -45,9 +58,11 @@ export interface ParsedResumeData {
     date: string;
   }>;
   thumbnail?: string;
+  originalTemplate?: OriginalTemplateMetadata;
+  preserveOriginal?: boolean;
 }
 
-const parseResumeText = (text: string): ParsedResumeData => {
+const parseResumeText = (text: string, metadata?: OriginalTemplateMetadata): ParsedResumeData => {
   const lines = text.split('\n').filter(line => line.trim());
   const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/;
   const emailMatch = text.match(emailRegex);
@@ -60,7 +75,7 @@ const parseResumeText = (text: string): ParsedResumeData => {
   const linkedin = linkedinMatch ? linkedinMatch[0] : "";
   const fullName = lines[0] || "Your Name";
 
-  return {
+  const data: ParsedResumeData = {
     fullName,
     email,
     phone,
@@ -71,8 +86,36 @@ const parseResumeText = (text: string): ParsedResumeData => {
     education: [],
     skills: [],
     projects: [],
-    certifications: []
+    certifications: [],
+    originalTemplate: metadata,
+    preserveOriginal: !!metadata,
   };
+
+  // Basic section population from text (enhanced later with metadata)
+  if (metadata) {
+    // Use metadata to populate sections more accurately
+    metadata.sections.forEach(section => {
+      const sectionText = section.items.map(item => item.text).join(' ');
+      if (section.id === 'experience') {
+        // Simple parsing: split into entries
+        data.experience = sectionText.split(/(\d{4}|\w+ \d{4})/).filter(Boolean).map((chunk, i) => ({
+          title: '',
+          company: '',
+          location: '',
+          startDate: '',
+          endDate: '',
+          description: [chunk.trim()],
+        }));
+      } else if (section.id === 'education') {
+        data.education = [{ degree: '', institution: '', location: '', graduationDate: '', gpa: sectionText }];
+      } else if (section.id === 'skills') {
+        data.skills = sectionText.split(/,\s*/);
+      }
+      // Add more mappings as needed
+    });
+  }
+
+  return data;
 };
 
 const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => void, setIsProcessing: (value: boolean) => void, toast: any) => {
@@ -80,6 +123,7 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
   try {
     let text = "";
     let thumbnail = "";
+    let metadata: OriginalTemplateMetadata | undefined;
 
     if (file.type === "application/pdf") {
       const reader = new FileReader();
@@ -92,10 +136,14 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
           const pdf = await pdfJS.getDocument(typedArray).promise;
           const page = await pdf.getPage(1);
           
-          // Get text content for parsing
+          // Get text content with positions for template detection
           const textContent = await page.getTextContent();
-          text = textContent.items.map((item: any) => item.str).join(' ');
+          const items = textContent.items as any[];
+          text = items.map((item: any) => item.str).join(' ');
 
+          // Extract metadata for template conversion
+          metadata = extractTemplateMetadata(items, page);
+          
           // Create thumbnail
           const viewport = page.getViewport({ scale: 0.5 });
           const canvas = document.createElement('canvas');
@@ -108,7 +156,7 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
             thumbnail = canvas.toDataURL();
           }
 
-          const parsedData = { ...parseResumeText(text), thumbnail };
+          const parsedData = { ...parseResumeText(text, metadata), thumbnail };
           onSuccess(parsedData);
         } catch (pdfError) {
           console.error("Error processing PDF:", pdfError);
@@ -125,7 +173,14 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
         const mammoth = (await import("mammoth")).default;
         const result = await mammoth.extractRawText({ arrayBuffer });
         text = result.value;
-        const parsedData = parseResumeText(text);
+        // Basic metadata for DOCX (limited; no positions)
+        metadata = {
+          layout: 'one-column' as const,
+          fonts: { header: 'serif', body: 'sans-serif' },
+          colors: {},
+          sections: [], // Would need enhanced mammoth for structure
+        };
+        const parsedData = parseResumeText(text, metadata);
         onSuccess(parsedData);
         setIsProcessing(false);
       };
@@ -150,6 +205,72 @@ const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => vo
     });
     setIsProcessing(false);
   }
+};
+
+// Helper function to extract template metadata from PDF text items
+const extractTemplateMetadata = (items: any[], page: any): OriginalTemplateMetadata => {
+  const viewport = page.getViewport({ scale: 1 });
+  const pageWidth = viewport.width;
+  const pageHeight = viewport.height;
+
+  // Group items by approximate y-position (tolerance for line height)
+  const yGroups: { [y: number]: any[] } = {};
+  items.forEach(item => {
+    const transform = item.transform as [number, number, number, number, number, number];
+    const x = transform[4];
+    const y = pageHeight - transform[5]; // Flip y for CSS top
+    const fontSize = item.width / item.str.length || 12; // Approximate
+    const bold = item.fontName?.toLowerCase().includes('bold') || fontSize > 14;
+
+    const roundedY = Math.round(y / 10) * 10; // Cluster tolerance
+    if (!yGroups[roundedY]) yGroups[roundedY] = [];
+    yGroups[roundedY].push({ ...item, x, y: roundedY, style: { fontSize, bold } });
+  });
+
+  // Sort y positions descending (top to bottom)
+  const sortedY = Object.keys(yGroups).map(Number).sort((a, b) => b - a);
+
+  // Detect sections based on large font or keywords
+  const sections: OriginalTemplateMetadata['sections'] = [];
+  let currentSection: { id: string; title: string; yStart: number; items: any[] } | null = null;
+  const commonHeaders = ['experience', 'education', 'skills', 'summary', 'projects', 'certifications'];
+
+  sortedY.forEach(yPos => {
+    const group = yGroups[yPos].sort((a, b) => a.x - b.x); // Left to right
+    const fullText = group.map(i => i.str).join(' ').toLowerCase().trim();
+
+    // Check if header (large font or keyword)
+    if ((group[0].style.fontSize > 14 || commonHeaders.some(h => fullText.includes(h))) && !currentSection) {
+      currentSection = {
+        id: fullText.includes('experience') ? 'experience' : fullText.includes('education') ? 'education' : fullText.includes('skills') ? 'skills' : 'other',
+        title: group.map(i => i.str).join(' '),
+        yStart: yPos,
+        items: [],
+      };
+    } else if (currentSection) {
+      currentSection.items.push(...group.map(i => ({ text: i.str, x: i.x, y: yPos, style: i.style })));
+    }
+
+    if (currentSection && fullText.includes('\n') || yPos < sortedY[0] * 0.8) { // End section on large gap or bottom
+      if (currentSection.items.length > 0) sections.push(currentSection);
+      currentSection = null;
+    }
+  });
+
+  // Infer layout: Check x-span
+  const maxX = Math.max(...items.map(i => (i.transform as any)[4]));
+  const layout = maxX > pageWidth * 0.6 ? 'two-column' : 'one-column';
+
+  // Sample fonts (map common pdfjs names)
+  const headerFont = items.find(i => i.style.fontSize > 14)?.fontName || 'serif';
+  const bodyFont = items.find(i => i.style.fontSize <= 14)?.fontName || 'sans-serif';
+
+  return {
+    layout,
+    fonts: { header: headerFont.includes('Helvetica') ? 'sans-serif' : 'serif', body: 'sans-serif' },
+    colors: { primary: '#000000', secondary: '#666666' }, // Default; advanced color detection needs pdf-lib
+    sections: sections.length > 0 ? sections : [{ id: 'content', title: 'Main Content', yStart: 0, items }],
+  };
 };
 
 const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
@@ -338,6 +459,7 @@ const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
 };
 
 const ResumeBuilder = () => {
+  const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<User | null>(null);
   const [currentStep, setCurrentStep] = useState<"upload" | "template" | "editor">("upload");
   const [parsedData, setParsedData] = useState<ParsedResumeData | null>(null);
@@ -345,6 +467,7 @@ const ResumeBuilder = () => {
   const [editedData, setEditedData] = useState<ParsedResumeData | null>(getSampleDataForTemplate("executive"));
   const [isStartingFromScratch, setIsStartingFromScratch] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingResume, setIsLoadingResume] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -355,12 +478,52 @@ const ResumeBuilder = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
+        if (id) {
+          loadExistingResume(id, user.uid);
+        }
       } else {
         navigate("/auth");
       }
     });
     return () => unsubscribe();
-  }, [auth, navigate]);
+  }, [auth, navigate, id]);
+
+  const loadExistingResume = async (resumeId: string, userId: string) => {
+    if (!userId) return;
+    setIsLoadingResume(true);
+    try {
+      const resumeDoc = await getDoc(doc(db, "resumes", resumeId));
+      if (resumeDoc.exists() && resumeDoc.data()?.user_id === userId) {
+        const resumeData = resumeDoc.data();
+        setParsedData(resumeData.content);
+        setEditedData(resumeData.content);
+        setSelectedTemplate("executive"); // Default template
+        setCurrentStep("editor");
+        setIsStartingFromScratch(false);
+        toast({
+          title: "Resume Loaded",
+          description: "Your resume is ready for editing.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Resume not found or access denied.",
+          variant: "destructive",
+        });
+        navigate("/my-resumes");
+      }
+    } catch (error) {
+      console.error("Error loading resume:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load resume.",
+        variant: "destructive",
+      });
+      navigate("/my-resumes");
+    } finally {
+      setIsLoadingResume(false);
+    }
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -415,6 +578,9 @@ const ResumeBuilder = () => {
     if (isStartingFromScratch) {
       const templateSampleData = getSampleDataForTemplate(templateId);
       setEditedData(templateSampleData);
+    } else if (parsedData?.originalTemplate && templateId === 'original') {
+      // Preserve original template
+      setEditedData({ ...editedData, preserveOriginal: true });
     }
     setCurrentStep("editor");
   };
@@ -446,7 +612,12 @@ const ResumeBuilder = () => {
       )}
 
       <main className="container mx-auto px-4 py-8">
-        {currentStep === "upload" && (
+        {isLoadingResume ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading resume...</span>
+          </div>
+        ) : currentStep === "upload" && (
           <div className="space-y-8 animate-in fade-in-0 duration-1000">
             <div className="text-center animate-in slide-in-from-bottom-4 duration-1000 delay-200">
               <h1 className="text-4xl font-bold mb-2">Create Your Professional Resume</h1>
@@ -512,6 +683,7 @@ const ResumeBuilder = () => {
                 templateId={selectedTemplate}
                 userId={user?.uid || ""}
                 onDataChange={handleEditorChange}
+                resumeId={id}
               />
             </div>
             <div className="lg:col-span-1">
