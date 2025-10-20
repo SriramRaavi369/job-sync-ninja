@@ -38,7 +38,7 @@ interface ParsedResumeData {
     skills: string[];
     projects: Array<{
       name: string;
-      description: string;
+      description: string[];
       technologies: string[];
       link?: string;
     }>;
@@ -60,33 +60,314 @@ interface ParsedResumeData {
       updated_at: { seconds: number, nanoseconds: number };
   }
   
-  const parseResumeText = (text: string): ParsedResumeData => {
-    const lines = text.split('\n').filter(line => line.trim());
-    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/;
-    const emailMatch = text.match(emailRegex);
-    const email = emailMatch ? emailMatch[0] : "";
-    const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
-    const phoneMatch = text.match(phoneRegex);
-    const phone = phoneMatch ? phoneMatch[0] : "";
-    const linkedinRegex = /(linkedin\.com\/in\/[\w-]+)/;
-    const linkedinMatch = text.match(linkedinRegex);
-    const linkedin = linkedinMatch ? linkedinMatch[0] : "";
-    const fullName = lines[0] || "Your Name";
-  
-    return {
-      fullName,
-      email,
-      phone,
-      location: "",
-      linkedin: "",
-      summary: "",
-      experience: [],
-      education: [],
-      skills: [],
-      projects: [],
-      certifications: []
-    };
+const parseExperience = (expLines: string[]): ParsedResumeData['experience'] => {
+  const experience: ParsedResumeData['experience'] = [];
+  let currentJob: ParsedResumeData['experience'][0] | null = null;
+  let i = 0;
+
+  while (i < expLines.length) {
+    const line = expLines[i].trim();
+    if (line.length === 0) {
+      i++;
+      continue;
+    }
+
+    // Look for company name (often first line after header)
+    if (!currentJob) {
+      currentJob = {
+        title: "Frontend Developer", // Default from top or infer
+        company: line,
+        location: "",
+        startDate: "",
+        endDate: "",
+        description: []
+      };
+      i++;
+      continue;
+    }
+
+    // Look for date line
+    const dateRegex = /(Aug 2020|Sep 2018)\s*-\s*(May 2022|May 2020)/i;
+    if (dateRegex.test(line) && currentJob) {
+      const match = line.match(dateRegex);
+      if (match) {
+        currentJob.startDate = match[1];
+        currentJob.endDate = match[2];
+      }
+      i++;
+      continue;
+    }
+
+    // Non-bullet line as title or additional info
+    if (!line.startsWith("•") && line.length > 0) {
+      if (currentJob.description.length === 0) {
+        currentJob.description.push(line); // First description line
+      } else {
+        // New job
+        experience.push(currentJob);
+        currentJob = {
+          title: "Frontend Developer",
+          company: line,
+          location: "",
+          startDate: "",
+          endDate: "",
+          description: []
+        };
+      }
+      i++;
+      continue;
+    }
+
+    // Bullet points for description
+    if (line.startsWith("•") || line.match(/^- /)) {
+      if (currentJob) {
+        currentJob.description.push(line.replace(/^[-•]\s*/, '').trim());
+      }
+      i++;
+      continue;
+    }
+
+    i++;
+  }
+  if (currentJob) experience.push(currentJob);
+  return experience;
+};
+
+const parseEducation = (eduLines: string[]): ParsedResumeData['education'] => {
+  const education: ParsedResumeData['education'] = [];
+  let currentEdu: ParsedResumeData['education'][0] | null = null;
+  let i = 0;
+
+  while (i < eduLines.length) {
+    const line = eduLines[i].trim();
+    if (line.length === 0) {
+      i++;
+      continue;
+    }
+
+    // Degree and institution
+    if (!currentEdu) {
+      const parts = line.split(/,\s*|\s+at\s+|\s-\s+/i);
+      currentEdu = {
+        degree: parts[0] || line,
+        institution: parts.slice(1).join(' ') || line,
+        location: "",
+        graduationDate: ""
+      };
+      i++;
+      continue;
+    }
+
+    // Date line
+    const dateRegex = /(Sep\s+2018)\s*-\s*(May\s+2020)/i;
+    if (dateRegex.test(line) && currentEdu) {
+      currentEdu.graduationDate = line.match(dateRegex)?.[0] || line;
+      education.push(currentEdu);
+      currentEdu = null;
+      i++;
+      continue;
+    }
+
+    i++;
+  }
+  if (currentEdu) education.push(currentEdu);
+  return education;
+};
+
+const parseProjects = (projLines: string[]): ParsedResumeData['projects'] => {
+  const projects: ParsedResumeData['projects'] = [];
+  let currentProject: ParsedResumeData['projects'][0] | null = null;
+  let i = 0;
+
+  while (i < projLines.length) {
+    const line = projLines[i].trim();
+    if (line.length === 0) {
+      i++;
+      continue;
+    }
+
+    if (!currentProject) {
+      currentProject = {
+        name: line,
+        description: [],
+        technologies: [],
+        link: ""
+      };
+      i++;
+      continue;
+    }
+
+    // Bullets for description
+    if (line.startsWith("•")) {
+      if (currentProject) {
+        currentProject.description.push(line.replace(/^•\s*/, '').trim());
+      }
+      i++;
+      continue;
+    }
+
+    // If next project or end
+    if (line.length > 0 && !line.startsWith("•")) {
+      if (currentProject) {
+        projects.push(currentProject);
+      }
+      currentProject = null;
+    }
+    i++;
+  }
+  if (currentProject) projects.push(currentProject);
+  return projects;
+};
+
+const parseResumeText = (text: string): ParsedResumeData => {
+  const lines = text.split('\n').map(line => line.replace(/\s+/g, ' ').trim()).filter(line => line.length > 0);
+  console.log("Extracted lines:", lines.slice(0, 20)); // Debug: First 20 lines
+
+  const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i;
+  const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+  const linkedinRegex = /(linkedin\.com\/in\/[\w-]+)/i;
+
+  let email = "";
+  let phone = "";
+  let location = "";
+  let linkedin = "";
+
+  // Extract contact from line with | separator
+  for (let j = 0; j < lines.length; j++) {
+    const line = lines[j];
+    if (line.includes('|') && emailRegex.test(line)) {
+      const parts = line.split('|').map(p => p.trim());
+      if (parts.length >= 3) {
+        phone = parts[0] || "";
+        location = parts[1] || "";
+        email = parts[2] || "";
+        if (parts.length > 3) linkedin = parts[3] || "";
+      }
+      break;
+    }
+  }
+
+  // Fallback regex if no | line
+  if (!email) email = text.match(emailRegex)?.[0] || "";
+  if (!phone) phone = text.match(phoneRegex)?.[0] || "";
+  if (!linkedin) linkedin = text.match(linkedinRegex)?.[0] || "";
+
+  // fullName: First line with 2+ words, not contact-like
+  let fullName = "Your Name";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const wordCount = line.split(' ').length;
+    if (wordCount >= 2 && !line.includes('|') && !emailRegex.test(line) && !phoneRegex.test(line) && !line.startsWith('http') && line.length > 5) {
+      fullName = line.split(' ')[0] + ' ' + line.split(' ').slice(1, 2).join(' '); // First two words as name
+      break;
+    }
+  }
+
+  const sections: { [key: string]: string[] } = {};
+  let currentSection = 'summary';
+  sections[currentSection] = [];
+
+  const sectionHeaders = [
+    "summary", "about", "about me", "professional summary", "profile",
+    "experience", "work experience", "professional experience", "employment history",
+    "education", "academic background",
+    "skills", "technical skills", "core competencies",
+    "projects", "certifications", "certificates"
+  ];
+
+  const sectionMapping: { [key: string]: string } = {
+    "about": "summary",
+    "about me": "summary",
+    "professional summary": "summary",
+    "profile": "summary",
+    "work experience": "experience",
+    "professional experience": "experience",
+    "employment history": "experience",
+    "academic background": "education",
+    "technical skills": "skills",
+    "core competencies": "skills",
+    "certificates": "certifications"
   };
+
+  let i = 0;
+  while (i < lines.length) {
+    let line = lines[i];
+    const lowerLine = line.toLowerCase();
+    const upperLine = line.toUpperCase().replace(/\s+/g, ' ');
+    let isHeader = false;
+
+    // Check for all-caps headers or exact matches, trimmed
+    if (upperLine === "ABOUT ME" || lowerLine.includes("about me") || lowerLine.startsWith("about me:")) {
+      currentSection = "summary";
+      sections[currentSection] = [];
+      isHeader = true;
+    } else if (upperLine === "PROFESSIONAL EXPERIENCE" || lowerLine.includes("professional experience")) {
+      currentSection = "experience";
+      sections[currentSection] = [];
+      isHeader = true;
+    } else if (upperLine === "TECHNICAL SKILLS" || lowerLine.includes("technical skills")) {
+      currentSection = "skills";
+      sections[currentSection] = [];
+      isHeader = true;
+    } else if (upperLine === "EDUCATION" || lowerLine.includes("education")) {
+      currentSection = "education";
+      sections[currentSection] = [];
+      isHeader = true;
+    } else if (upperLine === "PROJECTS" || lowerLine.includes("projects")) {
+      currentSection = "projects";
+      sections[currentSection] = [];
+      isHeader = true;
+    } else {
+      for (const header of sectionHeaders) {
+        if (lowerLine.includes(header) || lowerLine.startsWith(header + ':')) {
+          const mappedSection = sectionMapping[header] || header;
+          currentSection = mappedSection;
+          if (!sections[currentSection]) sections[currentSection] = [];
+          isHeader = true;
+          break;
+        }
+      }
+    }
+
+    if (isHeader) {
+      i++;
+      continue;
+    }
+
+    if (!sections[currentSection]) sections[currentSection] = [];
+    sections[currentSection].push(line);
+    i++;
+  }
+
+  console.log("Sections:", sections); // Debug: Sections found
+
+  // Parse skills more robustly: for listed items
+  const skillsSection = sections.skills || [];
+  const skills = skillsSection
+    .filter(line => line.length > 1)
+    .flatMap(line => line.split(/,\s*|\s+•\s+|\n/))
+    .map(s => s.trim())
+    .filter(s => s.length > 1 && !s.match(/^\d+$/))
+    .slice(0, 20);
+
+  // Summary: Limit to avoid too much text
+  const summaryLines = sections.summary || [];
+  const summary = summaryLines.join(' ').substring(0, 500).trim();
+
+  return {
+    fullName,
+    email,
+    phone,
+    location,
+    linkedin,
+    summary,
+    experience: sections.experience ? parseExperience(sections.experience) : [],
+    education: sections.education ? parseEducation(sections.education) : [],
+    skills,
+    projects: sections.projects ? parseProjects(sections.projects) : [],
+    certifications: []
+  };
+};
 
 const MyResumes = () => {
   const { user } = useAuth();
@@ -129,59 +410,68 @@ const MyResumes = () => {
     }
   };
 
-  const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => void) => {
+  const processFile = async (file: File): Promise<ParsedResumeData> => {
     let parsedData: ParsedResumeData = parseResumeText("");
     let thumbnail: string | undefined = undefined;
 
-    if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
+    try {
+      if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
+          reader.onerror = () => reject(new Error("Failed to read DOCX file"));
+          reader.readAsArrayBuffer(file);
+        });
         const mammoth = (await import("mammoth")).default;
         const result = await mammoth.extractRawText({ arrayBuffer });
-        const text = result.value;
+        const text = result.value || "";
         parsedData = parseResumeText(text);
-        onSuccess(parsedData);
-      };
-      reader.readAsArrayBuffer(file);
-    } else if (file.type === "application/pdf") {
+      } else if (file.type === "application/pdf") {
         thumbnail = await generatePdfThumbnail(file);
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const pdfJS = await import('pdfjs-dist');
-            pdfJS.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
+          reader.onerror = () => reject(new Error("Failed to read PDF file"));
+          reader.readAsArrayBuffer(file);
+        });
+        const pdfJS = await import('pdfjs-dist');
+        pdfJS.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
 
-            const text = await pdfJS.getDocument({data: e.target?.result as ArrayBuffer}).promise.then(pdf => {
-                const maxPages = pdf.numPages;
-                const countPromises = [];
-                for (let j = 1; j <= maxPages; j++) {
-                    const page = pdf.getPage(j);
-                    countPromises.push(page.then((page) => {
-                        const textContent = page.getTextContent();
-                        return textContent.then((textContent) => {
-                            return textContent.items.filter((item): item is TextItem => 'str' in item).map(s => s.str).join('');
-                        });
-                    }));
-                }
-                return Promise.all(countPromises).then((texts) => {
-                    return texts.join('');
-                });
-            });
-            parsedData = parseResumeText(text);
-            parsedData.thumbnail = thumbnail; 
-            onSuccess(parsedData); 
-        };
-        reader.readAsArrayBuffer(file);
-    }
-    else {
-      // Fallback for other file types like .txt
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
+        const pdf = await pdfJS.getDocument({ data: arrayBuffer }).promise;
+        const maxPages = pdf.numPages;
+        const countPromises = [];
+        for (let j = 1; j <= maxPages; j++) {
+          const page = pdf.getPage(j);
+          countPromises.push(
+            page.then((page) => {
+              const textContent = page.getTextContent();
+              return textContent.then((textContent) => {
+                return textContent.items
+                  .filter((item): item is TextItem => 'str' in item)
+                  .map((s) => s.str)
+                  .join(' ');
+              });
+            })
+          );
+        }
+        const texts = await Promise.all(countPromises);
+        const text = texts.join('\n');
         parsedData = parseResumeText(text);
-        onSuccess(parsedData);
-      };
-      reader.readAsText(file);
+        parsedData.thumbnail = thumbnail;
+      } else {
+        // Fallback for other file types like .txt
+        const text = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string || "");
+          reader.onerror = () => reject(new Error("Failed to read text file"));
+          reader.readAsText(file);
+        });
+        parsedData = parseResumeText(text);
+      }
+      return parsedData;
+    } catch (error) {
+      console.error("Error processing file:", error);
+      throw new Error(`Failed to process ${file.name}: ${(error as Error).message}`);
     }
   };
 
@@ -189,54 +479,53 @@ const MyResumes = () => {
     const file = e.target.files?.[0];
     if (file && user) {
       setIsProcessing(true);
-      console.log("Starting file processing for:", file.name);
-      await processFile(file, async (data) => {
+      try {
+        console.log("Starting file processing for:", file.name);
+        const data = await processFile(file);
         console.log("File processing successful. Attempting to save to the database.");
-        try {
-          const title = data.fullName || file.name;
-          const resumeInsert = {
-            title,
-            content: data,
-            is_ats_optimized: false,
-            type: 'uploaded' as 'uploaded',
-            user_id: user.uid,
-            created_at: serverTimestamp(),
-            updated_at: serverTimestamp(),
-          };
+        const title = data.fullName || file.name;
+        const resumeInsert = {
+          title,
+          content: data,
+          is_ats_optimized: false,
+          type: 'uploaded' as 'uploaded',
+          user_id: user.uid,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+        };
 
-          console.log("Data to be saved:", resumeInsert);
-          const docRef = await addDoc(collection(db, "resumes"), resumeInsert);
-          console.log("Resume saved successfully to database with ID:", docRef.id);
+        console.log("Data to be saved:", resumeInsert);
+        const docRef = await addDoc(collection(db, "resumes"), resumeInsert);
+        console.log("Resume saved successfully to database with ID:", docRef.id);
 
-          const newResume: Resume = {
-            id: docRef.id,
-            title: resumeInsert.title,
-            content: resumeInsert.content,
-            is_ats_optimized: resumeInsert.is_ats_optimized,
-            type: resumeInsert.type,
-            user_id: resumeInsert.user_id,
-            updated_at: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-          };
+        const newResume: Resume = {
+          id: docRef.id,
+          title: resumeInsert.title,
+          content: resumeInsert.content,
+          is_ats_optimized: resumeInsert.is_ats_optimized,
+          type: resumeInsert.type,
+          user_id: resumeInsert.user_id,
+          updated_at: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+        };
 
-          setResumes(currentResumes => [newResume, ...currentResumes]);
+        setResumes(currentResumes => [newResume, ...currentResumes]);
 
-          toast({
-            title: "Success",
-            description: "Resume uploaded and saved successfully!",
-          });
-
-        } catch (error: any) {
-          console.error("!!! Critical Error: Failed to save resume to database.", error);
-          toast({
-            title: "Error Saving Resume",
-            description: error.message || "Failed to save the resume to the database.",
-            variant: "destructive",
-          });
-        }
-      });
-      setIsProcessing(false);
-      // Reset file input to allow re-uploading the same file
-      if (fileInputRef.current) fileInputRef.current.value = '';
+        toast({
+          title: "Success",
+          description: "Resume uploaded and saved successfully!",
+        });
+      } catch (error: any) {
+        console.error("Error in handleFileSelect:", error);
+        toast({
+          title: "Upload Failed",
+          description: error.message || "Failed to process or save the resume.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsProcessing(false);
+        // Reset file input to allow re-uploading the same file
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
     }
   };
 

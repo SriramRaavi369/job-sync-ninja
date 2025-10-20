@@ -2,86 +2,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
-import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileEdit, UploadCloud, Loader2 } from "lucide-react";
+import { ArrowLeft, FileEdit, UploadCloud, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import TemplateSelection from "@/components/resume-builder/TemplateSelection";
 import ResumeEditor from "@/components/resume-builder/ResumeEditor";
 import ResumePreview from "@/components/resume-builder/ResumePreview";
-
-export interface OriginalTemplateMetadata {
-  layout: 'one-column' | 'two-column' | 'custom';
-  fonts: { header: string; body: string; };
-  colors: { primary?: string; secondary?: string; }; // Limited detection; fallback to defaults
-  sections: Array<{
-    id: string;
-    title: string;
-    yStart: number;
-    items: Array<{ text: string; x: number; y: number; style: { fontSize: number; bold: boolean; italic?: boolean; } }>;
-  }>;
-  rawFile?: string; // base64 of original for reference/overlay
-  pageStyle?: React.CSSProperties;
-  header?: {
-    style?: React.CSSProperties;
-    nameStyle?: React.CSSProperties;
-    contactStyle?: React.CSSProperties;
-  };
-  summary?: {
-    style?: React.CSSProperties;
-    titleStyle?: React.CSSProperties;
-    contentStyle?: React.CSSProperties;
-    title?: string;
-  };
-  experience?: {
-    style?: React.CSSProperties;
-    sectionTitleStyle?: React.CSSProperties;
-    itemStyle?: React.CSSProperties;
-    headerStyle?: React.CSSProperties;
-    jobTitleStyle?: React.CSSProperties;
-    companyStyle?: React.CSSProperties;
-    locationStyle?: React.CSSProperties;
-    dateStyle?: React.CSSProperties;
-    subheaderStyle?: React.CSSProperties;
-    listStyle?: React.CSSProperties;
-    bulletStyle?: React.CSSProperties;
-    title?: string;
-  };
-  education?: {
-    style?: React.CSSProperties;
-    titleStyle?: React.CSSProperties;
-    itemStyle?: React.CSSProperties;
-    headerStyle?: React.CSSProperties;
-    degreeStyle?: React.CSSProperties;
-    institutionStyle?: React.CSSProperties;
-    locationStyle?: React.CSSProperties;
-    dateStyle?: React.CSSProperties;
-    gpaStyle?: React.CSSProperties;
-    title?: string;
-  };
-  skills?: {
-    style?: React.CSSProperties;
-    titleStyle?: React.CSSProperties;
-    contentStyle?: React.CSSProperties;
-    title?: string;
-  };
-  projects?: {
-    style?: React.CSSProperties;
-    titleStyle?: React.CSSProperties;
-    itemStyle?: React.CSSProperties;
-    nameStyle?: React.CSSProperties;
-    descriptionStyle?: React.CSSProperties;
-    techStyle?: React.CSSProperties;
-    linkStyle?: React.CSSProperties;
-    title?: string;
-  };
-  certifications?: {
-    style?: React.CSSProperties;
-    titleStyle?: React.CSSProperties;
-    itemStyle?: React.CSSProperties;
-    title?: string;
-  };
-}
 
 export interface ParsedResumeData {
   fullName: string;
@@ -91,7 +18,7 @@ export interface ParsedResumeData {
   linkedin: string;
   summary: string;
   experience: Array<{
-    title: string;
+    title:string;
     company: string;
     location: string;
     startDate: string;
@@ -118,219 +45,150 @@ export interface ParsedResumeData {
     date: string;
   }>;
   thumbnail?: string;
-  originalTemplate?: OriginalTemplateMetadata;
-  preserveOriginal?: boolean;
 }
 
-const parseResumeText = (text: string, metadata?: OriginalTemplateMetadata): ParsedResumeData => {
-  const lines = text.split('\n').filter(line => line.trim());
-  const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/;
-  const emailMatch = text.match(emailRegex);
-  const email = emailMatch ? emailMatch[0] : "";
-  const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
-  const phoneMatch = text.match(phoneRegex);
-  const phone = phoneMatch ? phoneMatch[0] : "";
-  const linkedinRegex = /(linkedin\.com\/in\/[\w-]+)/;
-  const linkedinMatch = text.match(linkedinRegex);
-  const linkedin = linkedinMatch ? linkedinMatch[0] : "";
-  const fullName = lines[0] || "Your Name";
-
-  const data: ParsedResumeData = {
-    fullName,
-    email,
-    phone,
-    location: "",
-    linkedin,
-    summary: "",
-    experience: [],
-    education: [],
-    skills: [],
-    projects: [],
-    certifications: [],
-    originalTemplate: metadata,
-    preserveOriginal: !!metadata,
-  };
-
-  // Basic section population from text (enhanced later with metadata)
-  if (metadata) {
-    // Use metadata to populate sections more accurately
-    metadata.sections.forEach(section => {
-      const sectionText = section.items.map(item => item.text).join(' ');
-      if (section.id === 'experience') {
-        // Simple parsing: split into entries
-        data.experience = sectionText.split(/(\d{4}|\w+ \d{4})/).filter(Boolean).map((chunk, i) => ({
-          title: '',
-          company: '',
-          location: '',
-          startDate: '',
-          endDate: '',
-          description: [chunk.trim()],
-        }));
-      } else if (section.id === 'education') {
-        data.education = [{ degree: '', institution: '', location: '', graduationDate: '', gpa: sectionText }];
-      } else if (section.id === 'skills') {
-        data.skills = sectionText.split(/,\s*/);
+const parseResumeText = (text: string): ParsedResumeData => {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/;
+    const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+    const linkedinRegex = /(linkedin\.com\/in\/[\w-]+)/i;
+  
+    const email = text.match(emailRegex)?.[0] || "";
+    const phone = text.match(phoneRegex)?.[0] || "";
+    const linkedin = text.match(linkedinRegex)?.[0] || "";
+  
+    let fullName = lines[0] || "Your Name";
+    if (lines.length > 1 && (lines[1].toLowerCase().includes('developer') || lines[1].toLowerCase().includes('engineer'))) {
+      fullName = `${lines[0]} ${lines[1]}`;
+    }
+  
+    const sections: { [key: string]: string[] } = {};
+    let currentSection = 'summary';
+    sections[currentSection] = [];
+  
+    const sectionHeaders = [
+      "summary", "about me", "professional experience", "experience", "education",
+      "skills", "technical skills", "projects", "certifications"
+    ];
+    
+    const sectionMapping: { [key: string]: string } = {
+      "about me": "summary",
+      "professional experience": "experience",
+      "technical skills": "skills",
+    };
+  
+    lines.forEach(line => {
+      const lowerLine = line.toLowerCase();
+      let isHeader = false;
+      for (const header of sectionHeaders) {
+        if (lowerLine === header) {
+          currentSection = sectionMapping[header] || header;
+          sections[currentSection] = [];
+          isHeader = true;
+          break;
+        }
       }
-      // Add more mappings as needed
+      if (!isHeader) {
+        if (!sections[currentSection]) sections[currentSection] = [];
+        sections[currentSection].push(line);
+      }
     });
-  }
-
-  return data;
+  
+    const parseExperience = (expLines: string[]): ParsedResumeData['experience'] => {
+      const experience: ParsedResumeData['experience'] = [];
+      let currentJob: ParsedResumeData['experience'][0] | null = null;
+  
+      expLines.forEach(line => {
+        const dateRegex = /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{4}\s-\s(Present|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{4}/;
+        const isDate = dateRegex.test(line);
+  
+        if (isDate && currentJob) {
+          const [startDate, endDate] = line.split(' - ');
+          currentJob.startDate = startDate;
+          currentJob.endDate = endDate;
+        } else if (!line.startsWith("•")) {
+           if(currentJob) experience.push(currentJob);
+           currentJob = { title: line, company: "", location: "", startDate: "", endDate: "", description: [] };
+        } else if(line.startsWith("•") && currentJob) {
+            currentJob.description.push(line.substring(1).trim());
+        } else if(currentJob && !currentJob.company) {
+            currentJob.company = line;
+        }
+      });
+      if (currentJob) experience.push(currentJob);
+      return experience;
+    }
+  
+    return {
+      fullName,
+      email,
+      phone,
+      location: "",
+      linkedin,
+      summary: sections.summary ? sections.summary.join(' ') : "",
+      experience: sections.experience ? parseExperience(sections.experience) : [],
+      education: [],
+      skills: sections.skills ? sections.skills.join(', ').split(/, | \| | • /).filter(s => s) : [],
+      projects: [],
+      certifications: []
+    };
 };
+  
 
 const processFile = async (file: File, onSuccess: (data: ParsedResumeData) => void, setIsProcessing: (value: boolean) => void, toast: any) => {
   setIsProcessing(true);
   try {
     let text = "";
-    let thumbnail = "";
-    let metadata: OriginalTemplateMetadata | undefined;
+    let thumbnail: string | undefined;
 
     if (file.type === "application/pdf") {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const pdfJS = await import('pdfjs-dist');
-          pdfJS.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfJS.version}/pdf.worker.min.js`;
+      const pdfJS = await import('pdfjs-dist');
+      pdfJS.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
-          const typedArray = new Uint8Array(e.target?.result as ArrayBuffer);
-          const pdf = await pdfJS.getDocument(typedArray).promise;
-          const page = await pdf.getPage(1);
-          
-          // Get text content with positions for template detection
-          const textContent = await page.getTextContent();
-          const items = textContent.items as any[];
-          text = items.map((item: any) => item.str).join(' ');
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfJS.getDocument({ data: arrayBuffer }).promise;
+      
+      const pageTexts = await Promise.all(Array.from({ length: pdf.numPages }, async (_, i) => {
+        const page = await pdf.getPage(i + 1);
+        const textContent = await page.getTextContent();
+        return textContent.items.map((item: any) => item.str).join(' ');
+      }));
+      text = pageTexts.join('\n');
 
-          // Extract metadata for template conversion
-          metadata = extractTemplateMetadata(items, page);
-          
-          // Create thumbnail
-          const viewport = page.getViewport({ scale: 0.5 });
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-
-          if (context) {
-            await page.render({ canvasContext: context, viewport }).promise;
-            thumbnail = canvas.toDataURL();
-          }
-
-          const parsedData = { ...parseResumeText(text, metadata), thumbnail };
-          onSuccess(parsedData);
-        } catch (pdfError) {
-          console.error("Error processing PDF:", pdfError);
-          toast({ title: "Error", description: "Failed to process PDF file.", variant: "destructive" });
-        } finally {
-          setIsProcessing(false);
-        }
-      };
-      reader.readAsArrayBuffer(file);
+      const page1 = await pdf.getPage(1);
+      const viewport = page1.getViewport({ scale: 0.5 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (context) {
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page1.render({ canvasContext: context, viewport }).promise;
+        thumbnail = canvas.toDataURL();
+      }
     } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        const mammoth = (await import("mammoth")).default;
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        text = result.value;
-        // Basic metadata for DOCX (limited; no positions)
-        metadata = {
-          layout: 'one-column' as const,
-          fonts: { header: 'serif', body: 'sans-serif' },
-          colors: {},
-          sections: [], // Would need enhanced mammoth for structure
-        };
-        const parsedData = parseResumeText(text, metadata);
-        onSuccess(parsedData);
-        setIsProcessing(false);
-      };
-      reader.readAsArrayBuffer(file);
+      const mammoth = (await import("mammoth")).default;
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      text = result.value;
     } else if (file.type === "text/plain") {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        text = e.target?.result as string;
-        const parsedData = parseResumeText(text);
-        onSuccess(parsedData);
-        setIsProcessing(false);
-      };
-      reader.readAsText(file);
+      text = await file.text();
     } else {
       throw new Error("Unsupported file type");
     }
+
+    const parsedData = { ...parseResumeText(text), thumbnail };
+    onSuccess(parsedData);
+
   } catch (error) {
+    console.error("File processing error:", error);
     toast({
       title: "Error",
-      description: "Failed to process resume file. Please try again.",
+      description: "Failed to process the resume file. Please try again.",
       variant: "destructive",
     });
+  } finally {
     setIsProcessing(false);
   }
-};
-
-// Helper function to extract template metadata from PDF text items
-const extractTemplateMetadata = (items: any[], page: any): OriginalTemplateMetadata => {
-  const viewport = page.getViewport({ scale: 1 });
-  const pageWidth = viewport.width;
-  const pageHeight = viewport.height;
-
-  // Group items by approximate y-position (tolerance for line height)
-  const yGroups: { [y: number]: any[] } = {};
-  items.forEach(item => {
-    const transform = item.transform as [number, number, number, number, number, number];
-    const x = transform[4];
-    const y = pageHeight - transform[5]; // Flip y for CSS top
-    const fontSize = item.width / item.str.length || 12; // Approximate
-    const bold = item.fontName?.toLowerCase().includes('bold') || fontSize > 14;
-
-    const roundedY = Math.round(y / 10) * 10; // Cluster tolerance
-    if (!yGroups[roundedY]) yGroups[roundedY] = [];
-    yGroups[roundedY].push({ ...item, x, y: roundedY, style: { fontSize, bold } });
-  });
-
-  // Sort y positions descending (top to bottom)
-  const sortedY = Object.keys(yGroups).map(Number).sort((a, b) => b - a);
-
-  // Detect sections based on large font or keywords
-  const sections: OriginalTemplateMetadata['sections'] = [];
-  let currentSection: { id: string; title: string; yStart: number; items: any[] } | null = null;
-  const commonHeaders = ['experience', 'education', 'skills', 'summary', 'projects', 'certifications'];
-
-  sortedY.forEach(yPos => {
-    const group = yGroups[yPos].sort((a, b) => a.x - b.x); // Left to right
-    const fullText = group.map(i => i.str).join(' ').toLowerCase().trim();
-
-    // Check if header (large font or keyword)
-    if ((group[0].style.fontSize > 14 || commonHeaders.some(h => fullText.includes(h))) && !currentSection) {
-      currentSection = {
-        id: fullText.includes('experience') ? 'experience' : fullText.includes('education') ? 'education' : fullText.includes('skills') ? 'skills' : 'other',
-        title: group.map(i => i.str).join(' '),
-        yStart: yPos,
-        items: [],
-      };
-    } else if (currentSection) {
-      currentSection.items.push(...group.map(i => ({ text: i.str, x: i.x, y: yPos, style: i.style })));
-    }
-
-    if (currentSection && fullText.includes('\n') || yPos < sortedY[0] * 0.8) { // End section on large gap or bottom
-      if (currentSection.items.length > 0) sections.push(currentSection);
-      currentSection = null;
-    }
-  });
-
-  // Infer layout: Check x-span
-  const maxX = Math.max(...items.map(i => (i.transform as any)[4]));
-  const layout = maxX > pageWidth * 0.6 ? 'two-column' : 'one-column';
-
-  // Sample fonts (map common pdfjs names)
-  const headerFont = items.find(i => i.style.fontSize > 14)?.fontName || 'serif';
-  const bodyFont = items.find(i => i.style.fontSize <= 14)?.fontName || 'sans-serif';
-
-  return {
-    layout,
-    fonts: { header: headerFont.includes('Helvetica') ? 'sans-serif' : 'serif', body: 'sans-serif' },
-    colors: { primary: '#000000', secondary: '#666666' }, // Default; advanced color detection needs pdf-lib
-    sections: sections.length > 0 ? sections : [{ id: 'content', title: 'Main Content', yStart: 0, items }],
-  };
 };
 
 const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
@@ -517,17 +375,16 @@ const getSampleDataForTemplate = (templateId: string): ParsedResumeData => {
       };
   }
 };
-
 const ResumeBuilder = () => {
   const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<User | null>(null);
   const [currentStep, setCurrentStep] = useState<"upload" | "template" | "editor">("upload");
   const [parsedData, setParsedData] = useState<ParsedResumeData | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("executive");
-  const [editedData, setEditedData] = useState<ParsedResumeData | null>(getSampleDataForTemplate("executive"));
-  const [isStartingFromScratch, setIsStartingFromScratch] = useState<boolean>(false);
+  const [editedData, setEditedData] = useState<ParsedResumeData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isLoadingResume, setIsLoadingResume] = useState(false);
+  const [isLoadingResume, setIsLoadingResume] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -540,6 +397,9 @@ const ResumeBuilder = () => {
         setUser(user);
         if (id) {
           loadExistingResume(id, user.uid);
+        } else {
+          setCurrentStep("upload");
+          setIsLoadingResume(false);
         }
       } else {
         navigate("/auth");
@@ -549,7 +409,6 @@ const ResumeBuilder = () => {
   }, [auth, navigate, id]);
 
   const loadExistingResume = async (resumeId: string, userId: string) => {
-    if (!userId) return;
     setIsLoadingResume(true);
     try {
       const resumeDoc = await getDoc(doc(db, "resumes", resumeId));
@@ -557,29 +416,14 @@ const ResumeBuilder = () => {
         const resumeData = resumeDoc.data();
         setParsedData(resumeData.content);
         setEditedData(resumeData.content);
-        setSelectedTemplate(resumeData.content.originalTemplate ? "original" : "executive"); // Use original if available
-        // If original template exists, allow template selection; otherwise go straight to editor
-        setCurrentStep(resumeData.content.originalTemplate ? "template" : "editor");
-        setIsStartingFromScratch(false);
-        toast({
-          title: "Resume Loaded",
-          description: "Your resume is ready for editing.",
-        });
+        setSelectedTemplate(resumeData.templateId || "executive");
+        setCurrentStep("editor");
       } else {
-        toast({
-          title: "Error",
-          description: "Resume not found or access denied.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Resume not found or access denied.", variant: "destructive" });
         navigate("/my-resumes");
       }
     } catch (error) {
-      console.error("Error loading resume:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load resume.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load resume.", variant: "destructive" });
       navigate("/my-resumes");
     } finally {
       setIsLoadingResume(false);
@@ -589,35 +433,10 @@ const ResumeBuilder = () => {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && user) {
-      processFile(file, async (data) => {
+      await processFile(file, (data) => {
         setParsedData(data);
         setEditedData(data);
-        setIsStartingFromScratch(false);
         setCurrentStep("template");
-
-        try {
-          const title = data.fullName ? `${data.fullName}'s Resume` : "Uploaded Resume";
-          await addDoc(collection(db, "resumes"), {
-            title,
-            content: data,
-            is_ats_optimized: false,
-            type: 'uploaded',
-            user_id: user.uid,
-            created_at: serverTimestamp(),
-            updated_at: serverTimestamp(),
-          });
-
-          toast({
-            title: "Success",
-            description: "Resume uploaded and saved successfully!",
-          });
-        } catch (error: any) {
-          toast({
-            title: "Error",
-            description: "Failed to save resume. You can save it later in the editor.",
-            variant: "destructive",
-          });
-        }
       }, setIsProcessing, toast);
     }
   };
@@ -630,18 +449,13 @@ const ResumeBuilder = () => {
     const sampleData = getSampleDataForTemplate("executive");
     setParsedData(sampleData);
     setEditedData(sampleData);
-    setIsStartingFromScratch(true);
     setCurrentStep("template");
   };
 
   const handleTemplateSelected = (templateId: string) => {
     setSelectedTemplate(templateId);
-    if (isStartingFromScratch) {
-      const templateSampleData = getSampleDataForTemplate(templateId);
-      setEditedData(templateSampleData);
-    } else if (parsedData?.originalTemplate && templateId === 'original') {
-      // Preserve original template
-      setEditedData({ ...editedData, preserveOriginal: true });
+    if (!parsedData) { // Starting from scratch
+      setEditedData(getSampleDataForTemplate(templateId));
     }
     setCurrentStep("editor");
   };
@@ -649,114 +463,98 @@ const ResumeBuilder = () => {
   const handleEditorChange = (data: ParsedResumeData) => {
     setEditedData(data);
   };
+  
+  const handleSaveResume = async () => {
+    if (!user || !editedData) return;
+    setIsSaving(true);
+    try {
+      const resumePayload = {
+        title: editedData.fullName ? `${editedData.fullName}'s Resume` : "My Resume",
+        content: editedData,
+        templateId: selectedTemplate,
+        user_id: user.uid,
+        updated_at: serverTimestamp(),
+      };
 
-  const handleBack = () => {
-    if (currentStep === "template") {
-      setCurrentStep("upload");
-    } else if (currentStep === "editor") {
-      setCurrentStep("template");
-    } else {
-      navigate("/resumes");
+      if (id) {
+        await updateDoc(doc(db, "resumes", id), resumePayload);
+        toast({ title: "Success", description: "Resume updated successfully!" });
+      } else {
+        const docRef = await addDoc(collection(db, "resumes"), {
+          ...resumePayload,
+          created_at: serverTimestamp(),
+          type: parsedData ? 'uploaded' : 'created'
+        });
+        navigate(`/resume-builder/${docRef.id}`, { replace: true });
+        toast({ title: "Success", description: "Resume saved successfully!" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save resume.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  const handleBack = () => {
+    if (currentStep === "template") setCurrentStep("upload");
+    else if (currentStep === "editor") setCurrentStep("template");
+    else navigate("/my-resumes");
+  };
+
+  if (isLoadingResume) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading resume...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {currentStep !== "upload" && (
-        <header className="border-b animate-in slide-in-from-top-2 duration-500">
-          <div className="container mx-auto px-4 py-4">
-            <Button variant="ghost" size="icon" onClick={handleBack} className="hover:scale-110 transition-transform duration-200">
-              <ArrowLeft className="h-5 w-5" />
+       <header className="border-b sticky top-0 bg-background/95 z-10">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          {currentStep === "editor" && (
+            <Button size="sm" onClick={handleSaveResume} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              Save Resume
             </Button>
-          </div>
-        </header>
-      )}
+          )}
+        </div>
+      </header>
 
       <main className="container mx-auto px-4 py-8">
-        {isLoadingResume ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Loading resume...</span>
-          </div>
-        ) : currentStep === "upload" && (
-          <div className="space-y-8 animate-in fade-in-0 duration-1000">
-            <div className="text-center animate-in slide-in-from-bottom-4 duration-1000 delay-200">
-              <h1 className="text-4xl font-bold mb-2">Create Your Professional Resume</h1>
-              <p className="text-muted-foreground text-lg">How would you like to get started?</p>
+        {currentStep === "upload" && (
+          <div className="text-center max-w-2xl mx-auto">
+            <h1 className="text-4xl font-bold mb-2">Create Your Resume</h1>
+            <p className="text-muted-foreground text-lg mb-8">How would you like to start?</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CardAction title="Build from Scratch" icon={FileEdit} onClick={handleStartFromScratch} description="Use our editor to create a new resume." />
+              <CardAction title="Upload Existing" icon={UploadCloud} onClick={handleUploadClick} description="Import a PDF, DOCX, or TXT file." isProcessing={isProcessing} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              <div
-                className="border-2 border-dashed border-primary rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-accent/50 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-in slide-in-from-left-4 duration-1000 delay-400"
-                onClick={handleStartFromScratch}
-              >
-                <FileEdit className="h-16 w-16 text-primary mb-4 animate-in zoom-in-50 duration-1000 delay-600" />
-                <h3 className="text-2xl font-semibold mb-2">Build a New Resume</h3>
-                <p className="text-muted-foreground mb-4">
-                  Start with a blank canvas and use our tools to build one from the ground up.
-                </p>
-                <Button className="w-full hover:scale-105 transition-transform duration-200">Start from Scratch</Button>
-              </div>
-              <div className="border-2 border-dashed border-primary rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-accent/50 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-in slide-in-from-right-4 duration-1000 delay-400">
-                <UploadCloud className="h-16 w-16 text-primary mb-4 animate-in zoom-in-50 duration-1000 delay-600" />
-                <h3 className="text-2xl font-semibold mb-2">Improve an Existing Resume</h3>
-                <p className="text-muted-foreground mb-4">
-                  Upload your resume and we'll provide AI-powered suggestions, ATS-optimized templates, and real-time editing guidance.
-                </p>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelect}
-                  accept=".pdf,.docx,.txt"
-                  style={{ display: "none" }}
-                />
-                <Button
-                  className="w-full hover:scale-105 transition-transform duration-200"
-                  onClick={handleUploadClick}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin animate-in spin-in-12 duration-1000" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Upload your resume"
-                  )}
-                </Button>
-              </div>
-            </div>
+            <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".pdf,.docx,.txt" className="hidden" />
           </div>
         )}
         
         {currentStep === "template" && parsedData && (
-          <TemplateSelection
-            parsedData={parsedData}
-            onTemplateSelected={handleTemplateSelected}
-          />
+          <TemplateSelection parsedData={parsedData} onTemplateSelected={handleTemplateSelected} />
         )}
         
-        {currentStep === "editor" && parsedData && selectedTemplate && editedData && (
+        {currentStep === "editor" && editedData && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="lg:col-span-1 overflow-auto">
-              <ResumeEditor
-                key={selectedTemplate}
-                parsedData={editedData}
-                templateId={selectedTemplate}
-                userId={user?.uid || ""}
-                onDataChange={handleEditorChange}
-                resumeId={id}
-              />
-            </div>
-            <div className="lg:col-span-1">
-              <div className="sticky top-8 border rounded-lg p-6 bg-white shadow-lg overflow-auto max-h-[calc(100vh-4rem)]">
-                <div className="mb-4 flex items-center justify-between border-b pb-3">
-                  <h2 className="text-lg font-semibold">Resume Preview</h2>
-                  <span className="text-xs text-muted-foreground">Live Preview</span>
-                </div>
-                <div className="resume-preview-wrapper" style={{ transform: "scale(0.85)", transformOrigin: "top center" }}>
-                  <ResumePreview resumeData={editedData} templateId={selectedTemplate} />
-                </div>
-              </div>
+            <ResumeEditor
+              parsedData={editedData}
+              templateId={selectedTemplate}
+              userId={user?.uid || ""}
+              onDataChange={handleEditorChange}
+              resumeId={id}
+            />
+            <div className="sticky top-20">
+              <ResumePreview resumeData={editedData} templateId={selectedTemplate} />
             </div>
           </div>
         )}
@@ -764,5 +562,19 @@ const ResumeBuilder = () => {
     </div>
   );
 };
+
+const CardAction = ({ title, icon: Icon, onClick, description, isProcessing }: { title: string, icon: React.ElementType, onClick: () => void, description: string, isProcessing?: boolean }) => (
+  <div
+    className="border rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-accent hover:shadow-lg transition-all"
+    onClick={onClick}
+  >
+    <Icon className="h-12 w-12 text-primary mb-4" />
+    <h3 className="text-xl font-semibold mb-2">{title}</h3>
+    <p className="text-muted-foreground mb-4">{description}</p>
+    <Button variant="outline" className="w-full" disabled={isProcessing}>
+      {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Select'}
+    </Button>
+  </div>
+);
 
 export default ResumeBuilder;
